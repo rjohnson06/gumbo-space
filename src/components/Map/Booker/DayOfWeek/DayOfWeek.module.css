@@ -1,0 +1,38 @@
+.reservation {
+  background: rgba(110, 106, 224, .8);
+  z-index: 999;
+  position: relative;
+}
+
+.reservationHandle {
+  height: 30px;
+  width: 100%;
+  background: rgba(65, 105, 214, .5);
+}
+
+.reservationStartTimeHandle {
+}
+
+.reservationEndTimeHandle {
+  position: absolute;
+  bottom: 0;
+}
+
+.bookerDayOfWeek {
+  width: 175px;
+
+  border-right: 1px solid black;
+  border-top: 1px solid black;
+  border-bottom: 1px solid black;
+
+  display: grid;
+  grid-auto-rows: 30px;
+
+  user-select: none;
+  cursor: pointer;
+}
+
+.timeSlot {
+  border-bottom: 1px solid black;
+  text-align: right;
+}

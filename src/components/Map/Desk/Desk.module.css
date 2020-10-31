@@ -1,0 +1,12 @@
+.desk {
+  height: 100px;
+  width: 200px;
+}
+
+.occupied {
+  background-color: red;
+}
+
+.free {
+  background-color: green;
+}
