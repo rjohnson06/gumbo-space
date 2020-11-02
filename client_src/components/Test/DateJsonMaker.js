@@ -26,7 +26,7 @@ class DateJsonMaker extends Component {
   render() {
     return (
       <div>
-        <h1>JSON Date Maker3</h1>
+        <h1>JSON Date Maker1</h1>
         <div className={classes.ViewAvailCalendar}>
           <Calendar
             onChange={this.onViewAvailCalendarChange}
@@ -43,9 +43,9 @@ class DateJsonMaker extends Component {
             value={this.state.date.getHours() * 60 + this.state.date.getMinutes()}
             onChange={(evt) => this.onViewAvailTimeChange(evt.target.value)} />
         </div>
-        <textarea rows="5" cols="33">
+        <div>
           {this.state.date.toJSON()}
-        </textarea>
+        </div>
       </div>
     );
   }
