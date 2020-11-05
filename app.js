@@ -14,7 +14,8 @@ const path = require('path');
 const logger = require('morgan');
 const mongoose = require('mongoose');
 
-const routes = require("./routes/routes");
+const deskRoutes = require("./routes/desks");
+const userRoutes = require("./routes/users");
 
 //var indexRouter = require('./routes/index');
 //var blogRouter = require('./routes/blog');
@@ -58,7 +59,8 @@ const test = sconf.decryptFile(
             //app.use('/static', express.static(path.join(__dirname, 'public')));
             app.use('/', express.static(path.join(__dirname, 'build')));
 
-            app.use("/api", routes);
+            app.use("/api", deskRoutes);
+            app.use("/api", userRoutes);
 
             //app.use('/', indexRouter);
             //app.use('/blog', blogRouter);
