@@ -53,7 +53,7 @@ const ReservationSchema = new Schema({
 
 const DeskSchema = new Schema({
   id: { type: mongoose.ObjectId },
-  owner: { type: mongoose.ObjectId, ref: "User" },
+  owner: { type: mongoose.ObjectId, ref: "User", required: true },
   reservations: [ReservationSchema],
   reservationPatterns: [ReservationPatternSchema]
 });

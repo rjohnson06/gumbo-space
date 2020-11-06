@@ -3,17 +3,24 @@ const Desk = require("../models/desk");
 const User = require("../models/user");
 const Reservation = require('../models/reservation');
 const router = express.Router();
+const DeskCtr = require('../controllers/desks.js');
 
 // get all desks
 router.get("/desks", async (req, res) => {
-  const desks = await Desk.find();
-  res.send(desks);
+  DeskCtr
+    .getDesks()
+    .then(result => {
+      res.send(result);
+    })
+    .catch(err => {
+      res.send(err);
+    });
 });
 
 // get desk
 router.get("/desk/:id", async (req, res) => {
-  Desk
-    .find({ _id: req.params.id })
+  DeskCtr
+    .getDesk(req.params.id)
     .then(result => {
       res.send(result);
     })
@@ -24,35 +31,21 @@ router.get("/desk/:id", async (req, res) => {
 
 // add a desk
 router.post("/desk", async(req, res) => {
-  const desk = new Desk();
-  desk.owner = req.body.owner;
-
-  // testing remove
-  desk.reservations = [{
-    startDate: new Date(),
-    endDate: new Date(),
-    userId: req.body.owner
-   }];
-   // testing remove
-
-  desk.save()
+  DeskCtr
+    .addDesk(req.body.owner)
     .then(result => {
-      res.send(desk);
+      res.send(result);
     })
     .catch(err => {
-      res.send({ error: err });
+      console.log("error");
+      res.send(err);
     });
 });
 
 // update a desk
 router.put("/desk/:id", async(req, res) => {
-  Desk.findOneAndUpdate(
-    {
-      _id: req.params.id
-    },
-    {
-      owner: req.body.owner
-    })
+  DeskCtr
+    .updateDesk(req.params.id, req.body.owner)
     .then(result => {
       res.send(result);
     })
@@ -63,47 +56,43 @@ router.put("/desk/:id", async(req, res) => {
 
 // delete a desk
 router.delete("/desk/:id", async(req, res) => {
-  Desk.deleteOne({ _id: req.params.id }, function (err, result) {
-    if (err) {
-      res.send(err);
-    } else {
+  DeskCtr
+    .deleteDesk(req.params.id)
+    .then(result => {
       res.send(result);
-    }
-  });
+    })
+    .catch(err => {
+      res.send(err);
+    });
 });
 
 // add a desk reservation
 router.post("/desk/:deskId/reservation", async(req, res) => {
-  Desk.findOne({ _id: req.params.deskId })
-      .then((desk) => {
-        desk.reservations.push({
-          startDate: new Date(req.body.startDate),
-          endDate: new Date(req.body.endDate),
-          userId: req.body.userId
-        });
-
-        return desk.save();
-      })
-      .then((desk) => {
-        res.send(desk);
-      })
-      .catch(err => {
-        res.send(err);
-      });
+  DeskCtr
+    .addReservation(
+      req.params.deskId,
+      new Date(req.body.startDate),
+      new Date(req.body.endDate),
+      req.body.userId
+    )
+    .then((desk) => {
+      res.send(desk);
+    })
+    .catch(err => {
+      res.send(err);
+    });
 });
 
 // update a reservation
 router.put("/desk/:deskId/reservation/:resId", async(req, res) => {
-  Desk.findOneAndUpdate(
-    {
-      _id: req.params.deskId,
-      "reservations._id": req.params.resId
-    },
-    {
-      "reservations.$.startDate": req.body.startDate,
-      "reservations.$.endDate": req.body.endDate,
-      "reservations.$.userId": req.body.userId
-    })
+  DeskCtr
+    .updateReservation(
+      req.params.deskId,
+      req.params.resId,
+      req.body.startDate,
+      req.body.endDate,
+      req.body.userId
+    )
     .then(result => {
       // Weirdly, this shows the desk data prior to the update
       res.send(result);
@@ -115,9 +104,8 @@ router.put("/desk/:deskId/reservation/:resId", async(req, res) => {
 
 // delete a reservation
 router.delete("/desk/:deskId/reservation/:resId", async(req, res) => {
-  Desk.updateOne(
-    { _id: req.params.deskId },
-    { $pull: { reservations: { _id: req.params.resId } } })
+  DeskCtr
+    .deleteReservation(req.params.deskId, req.params.resId)
     .then(result => {
       res.send(result);
     })
