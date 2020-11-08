@@ -21,7 +21,8 @@ class DeskController {
   static async updateDesk(deskId, ownerId) {
     return await Desk.findOneAndUpdate(
       { _id: deskId },
-      { owner: ownerId }
+      { owner: ownerId },
+      { new: true }
     );
   }
 
@@ -36,7 +37,8 @@ class DeskController {
           { reservations :
               { startDate: startDate, endDate: endDate, userId: userId }
           }
-      }
+      },
+      { new: true }
     );
   }
 
@@ -50,14 +52,16 @@ class DeskController {
         "reservations.$.startDate": startDate,
         "reservations.$.endDate": endDate,
         "reservations.$.userId": userId
-      }
+      },
+      { new: true }
     );
   }
 
   static async deleteReservation(deskId, resId) {
     return await Desk.updateOne(
       { _id: deskId },
-      { $pull: { reservations: { _id: resId } } }
+      { $pull: { reservations: { _id: resId } } },
+      { new: true }
     );
   }
 }

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.js",
-    "test": "jest --runInBand ./test",
+    "test": "mocha --exit",
     "watch": "npm-watch"
   },
   "watch": {
@@ -55,6 +55,7 @@
     "lodash": "^4.17.20",
     "luxon": "^1.25.0",
     "mini-css-extract-plugin": "0.9.0",
+    "mocha": "^8.2.1",
     "mongoose": "^5.10.11",
     "morgan": "^1.10.0",
     "optimize-css-assets-webpack-plugin": "5.0.3",
