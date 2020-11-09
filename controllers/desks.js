@@ -1,6 +1,5 @@
 const Desk = require("../models/desk");
 const User = require("../models/user");
-const Reservation = require('../models/reservation');
 
 class DeskController {
   static async getDesks() {
@@ -63,6 +62,19 @@ class DeskController {
       { $pull: { reservations: { _id: resId } } },
       { new: true }
     );
+  }
+
+  // weekly, monthly, every day, custom
+
+  static async createReservationPattern(
+    deskId,
+    daysOfWeekIndices,
+    startDate,
+    endDate) {
+      getDesk(deskId)
+        .then({
+
+        });
   }
 }
 

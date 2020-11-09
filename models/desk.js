@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const ReservationPatternSchema = new Schema({
-  id: { type: mongoose.ObjectId }
+  id: { type: mongoose.ObjectId },
+  daysOfWeekIndices: [Number],
+  startDate: { type: Date },
+  endDate: { type: Date } 
 });
 
 const ReservationSchema = new Schema({
