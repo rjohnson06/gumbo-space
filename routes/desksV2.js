@@ -1,7 +1,6 @@
 const express = require("express");
 const Desk = require("../models/desk");
 const User = require("../models/user");
-const Reservation = require('../models/reservation');
 const router = express.Router();
 const DeskCtr = require('../controllers/desks.js');
 

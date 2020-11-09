@@ -6,7 +6,7 @@ const ReservationPatternSchema = new Schema({
   id: { type: mongoose.ObjectId },
   daysOfWeekIndices: [Number],
   startDate: { type: Date },
-  endDate: { type: Date } 
+  endDate: { type: Date }
 });
 
 const ReservationSchema = new Schema({
@@ -20,13 +20,7 @@ const ReservationSchema = new Schema({
 const DeskSchema = new Schema({
   id: { type: mongoose.ObjectId },
   owner: { type: mongoose.ObjectId, ref: "User", required: true },
-  reservations: {
-    type: [ReservationSchema],
-    validate: {
-      validator: () => Promise.resolve(false),
-      message: 'Email validation failed'
-    }
-  },
+  reservations: [ReservationSchema],
   reservationPatterns: [ReservationPatternSchema]
 });
 
