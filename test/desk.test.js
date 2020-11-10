@@ -354,51 +354,102 @@ describe("Pattern creation tests", () => {
         console.log(e);
       });
   });
-});
 
-/*
-describe('desk ', () => {
-    it('can be created correctly', async () => {
-        expect(async () => {
-          const user = new User();
-          user.name = "TestUser";
-          await user.save();
-          return await deskCtr.addDesk(user._id);
-        })
-        .not
-        .toThrow();
+  it("Reservation pattern is updated successfully", (done) => {
+
+    let newUser;
+
+    const startDate = DateTime.fromObject({
+      month: 11,
+      day: 9
     });
-});
+    const endDate = startDate.plus({ days: 14 });
+    const daysOfWeekIndices = [0,1];
+    const startTime = DateTime.fromObject({
+      month: 11,
+      day: 9,
+      hour: 0
+    });
+    const endTime = startTime.plus({ hours: 4 });
 
-describe('reservation ', () => {
+    basicDeskAndUserSetup()
+      .then(values => {
 
-  let user;
-  let desk;
-
-  beforeEach((done), () => {
-    user = new User();
-    user.name = "TestUser";
-    user.save()
-      .then(() => {
-        return deskCtr.addDesk(user._id);
+        return deskCtr.createReservationPattern(
+          values[0][0]._id,
+          values[1]._id,
+          daysOfWeekIndices,
+          startTime.toJSDate(),
+          endTime.toJSDate(),
+          startDate.toJSDate(),
+          endDate.toJSDate()
+        );
       })
-      .then(result => {
-        desk = result;
+      .then((desk) => {
+
+        return deskCtr.updateReservationPattern(
+          desk._id,
+          desk.owner,
+          desk.reservationPatterns[0]._id,
+          [3,4,5],
+          startTime.toJSDate(),
+          endTime.toJSDate(),
+          startDate.toJSDate(),
+          endDate.toJSDate()
+        );
+      })
+      .then(desk => {
+        assert(desk.reservations.length === 6);
         done();
+      })
+      .catch(e => {
+        console.log("err " + e);
       });
   });
 
-  it('can be created successfully', async () => {
-    expect(async () => {
+  it("Reservation pattern is deleted successfully", (done) => {
 
-      const users = User.find();
-      console.log("users " + JSON.stringify(users));
-    })
-    .not
-    .toThrow();
-  });
+    let newUser;
 
-  it('can be deleted successfully', () => {
+    const startDate = DateTime.fromObject({
+      month: 11,
+      day: 9
+    });
+    const endDate = startDate.plus({ days: 14 });
+    const daysOfWeekIndices = [0,1];
+    const startTime = DateTime.fromObject({
+      month: 11,
+      day: 9,
+      hour: 0
+    });
+    const endTime = startTime.plus({ hours: 4 });
+
+    basicDeskAndUserSetup()
+      .then(values => {
+
+        return deskCtr.createReservationPattern(
+          values[0][0]._id,
+          values[1]._id,
+          daysOfWeekIndices,
+          startTime.toJSDate(),
+          endTime.toJSDate(),
+          startDate.toJSDate(),
+          endDate.toJSDate()
+        );
+      })
+      .then((desk) => {
+
+        return deskCtr.deleteReservationPattern(
+          desk._id,
+          desk.reservationPatterns[0]._id
+        );
+      })
+      .then(desk => {
+        assert(desk.reservations.length === 0);
+        done();
+      })
+      .catch(e => {
+        console.log("err " + e);
+      });
   });
 });
-*/

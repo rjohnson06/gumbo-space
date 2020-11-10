@@ -65,8 +65,6 @@ class DeskController {
     );
   }
 
-  // weekly, monthly, every day, custom
-
   static async createReservationPattern(
     deskId,
     userId,
@@ -98,13 +96,6 @@ class DeskController {
           startTime = DateTime.fromJSDate(startTime);
           endTime = DateTime.fromJSDate(endTime);
 
-          /*
-          console.log("startDate " + startDate.toString());
-          console.log("endDate " + endDate.toString());
-          console.log("startTime " + startTime.toString());
-          console.log("endTime " + endTime.toString());
-          */
-
           const patternIntervals = daysOfWeekIndices.map(dayOfWeek => {
             const startIntervalDate = startTime.set({weekday: dayOfWeek});
             const endIntervalDate = endTime.set({weekday: dayOfWeek});
@@ -115,11 +106,11 @@ class DeskController {
             );
           });
 
-          /*
-          patternIntervals.forEach(interval => {
-            console.log(interval.toString());
-          });
-          */
+
+          //patternIntervals.forEach(interval => {
+          //  console.log(interval.toString());
+          //});
+
 
           let week = 0;
           const allPatternIntervals = [];
@@ -185,6 +176,9 @@ class DeskController {
             //console.log("Desk " + JSON.stringify(desk));
           });
 
+          //console.log("saving");
+          //console.log("desk " + JSON.stringify(desk));
+
           return desk.save();
         });
   }
@@ -199,7 +193,57 @@ class DeskController {
     startDate,
     endDate) {
 
+    //console.log("arguments " + JSON.stringify(arguments));
 
+    // TODO : what do you do when you can't find the desk
+    // what do you do when you can't find the reservation pattern
+    return Desk
+      .findByIdAndUpdate(
+        deskId,
+        { $pull: { reservations: { patternId: patternId } } },
+        { useFindAndModify: false, returnOriginal: false }
+      )
+      .then(desk => {
+        let containsPattern = false;
+        desk.reservationPatterns.toObject().forEach(pattern => {
+          if (pattern._id.equals(patternId)) {
+            containsPattern = true;
+          }
+        });
+
+        return containsPattern ?
+          desk.updateOne(
+            { $pull: { reservationPatterns: { _id: patternId } } }
+          ) :
+          Promise.reject("pattern not found");
+      })
+      .then(desk => {
+        return DeskController.createReservationPattern(
+          deskId,
+          userId,
+          daysOfWeekIndices,
+          startTime,
+          endTime,
+          startDate,
+          endDate
+        );
+      });
+  }
+
+  static async deleteReservationPattern(deskId, patternId) {
+    return Desk
+      .findByIdAndUpdate(
+        deskId,
+        { $pull: { reservations: { patternId: patternId } } },
+        { useFindAndModify: false, returnOriginal: false }
+      )
+      .then(desk => {
+        return Desk.findByIdAndUpdate(
+          deskId,
+          { $pull: { reservationPatterns: { _id: patternId } } },
+          { useFindAndModify: false, returnOriginal: false }
+        )
+      });
   }
 }
 
