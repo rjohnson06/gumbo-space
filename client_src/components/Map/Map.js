@@ -21,7 +21,7 @@ class Map extends Component {
 
   state = {
     selectedDeskId: 1,
-    showBooker: true,
+    showBooker: false,
     viewDate: new Date(),
 
     users: [

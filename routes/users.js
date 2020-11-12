@@ -22,6 +22,7 @@ router.post("/user", async(req, res) => {
     });
 });
 
+// TODO : when you delete a user, you've got to delete all their ressies right?
 router.delete("/user/:id", async(req, res) => {
   User.deleteOne({ _id: req.params.id }, function (err, result) {
       if (err){

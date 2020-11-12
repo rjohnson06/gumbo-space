@@ -128,6 +128,8 @@ module.exports = function(webpackEnv) {
     return loaders;
   };
 
+  console.log("webpack.config.js paths.publicUrlOrPath " + paths.publicUrlOrPath);
+
   return {
     mode: isEnvProduction ? 'production' : isEnvDevelopment && 'development',
     // Stop compilation early in production

@@ -58,6 +58,7 @@ const test = sconf.decryptFile(
             //app.use(cookieParser());
             //app.use('/static', express.static(path.join(__dirname, 'public')));
             app.use('/', express.static(path.join(__dirname, 'build')));
+            //app.use('/', express.static(path.join(__dirname, 'dist')));
 
             app.use("/api", deskRoutes);
             app.use("/api", userRoutes);
