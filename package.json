@@ -10,7 +10,7 @@
     "watch": "npm-watch"
   },
   "watch": {
-    "build": "client_src/"
+    "build-dev": "client_src/"
   },
   "config": {
     "mongodbMemoryServer": {
@@ -112,6 +112,8 @@
   },
   "devDependencies": {
     "@shelf/jest-mongodb": "^1.2.3",
-    "npm-watch": "^0.7.0"
+    "npm-watch": "^0.7.0",
+    "webpack-bundle-analyzer": "^4.1.0",
+    "webpack-cli": "^4.2.0"
   }
 }
