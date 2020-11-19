@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+import Form from '../Form/Form';
+
 const Users = props => {
   const commState = {
     default: 0,
@@ -65,6 +67,13 @@ const Users = props => {
       });
   }
 
+  /*
+  <input
+    type="text"
+    value={newUserName}
+    onChange={(e) => setNewUserName(e.target.value)} />
+  */
+
   return (
     <div>
       <h1>Users</h1>
@@ -85,10 +94,7 @@ const Users = props => {
       </div>
       <div>
         Name:
-        <input
-          type="text"
-          value={newUserName}
-          onChange={(e) => setNewUserName(e.target.value)} />
+        <Form fields={{ name: { type: "text", value: "" } }}/>
         <button onClick={() => addUser(newUserName)}>Add User</button>
       </div>
       <ul>
