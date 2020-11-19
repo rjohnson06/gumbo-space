@@ -142,7 +142,7 @@ function build(previousFileSizes) {
     console.log();
   }
 
-  console.log('Creating an optimized production build...');
+  console.log('Creating an optimized development build...');
 
   const compiler = webpack(config);
   return new Promise((resolve, reject) => {

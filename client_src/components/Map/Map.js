@@ -156,6 +156,10 @@ class Map extends Component {
               onChange={this.onViewAvailCalendarChange}
               value={this.state.viewDate}
             />
+            <Calendar
+              onChange={this.onViewAvailCalendarChange}
+              value={this.state.viewDate}
+            />
           </div>
           <div className={classes.ViewAvailTime}>
             <p>Time: {this.state.viewDate.getHours()}:{this.state.viewDate.getMinutes()}</p>

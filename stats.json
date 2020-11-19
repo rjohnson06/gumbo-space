@@ -1,0 +1,28 @@
+{
+  "errors": [
+    "Entry module not found: Error: Can't resolve './src' in 'C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space'\nresolve './src' in 'C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space'\n  using description file: C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\package.json (relative path: .)\n    Field 'browser' doesn't contain a valid alias configuration\n    using description file: C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\package.json (relative path: ./src)\n      no extension\n        Field 'browser' doesn't contain a valid alias configuration\n        C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\src doesn't exist\n      .wasm\n        Field 'browser' doesn't contain a valid alias configuration\n        C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\src.wasm doesn't exist\n      .mjs\n        Field 'browser' doesn't contain a valid alias configuration\n        C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\src.mjs doesn't exist\n      .js\n        Field 'browser' doesn't contain a valid alias configuration\n        C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\src.js doesn't exist\n      .json\n        Field 'browser' doesn't contain a valid alias configuration\n        C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\src.json doesn't exist\n      as directory\n        C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\src doesn't exist"
+  ],
+  "warnings": [],
+  "version": "4.42.0",
+  "hash": "49e7b6a2d875554eb718",
+  "time": 34,
+  "builtAt": 1605741242864,
+  "publicPath": "",
+  "outputPath": "C:\\Users\\Ryan\\Documents\\GitHub\\gumbo-space\\gumbo-space\\dist",
+  "assetsByChunkName": {},
+  "assets": [],
+  "filteredAssets": 0,
+  "entrypoints": {},
+  "namedChunkGroups": {},
+  "chunks": [],
+  "modules": [],
+  "filteredModules": 0,
+  "logging": {
+    "webpack.buildChunkGraph.visitModules": {
+      "entries": [],
+      "filteredEntries": 1,
+      "debug": false
+    }
+  },
+  "children": []
+}
