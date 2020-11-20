@@ -1,28 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 
-import Form from '../Form/Form';
+import useForm from '../../hooks/Form/useForm';
+import GlobalConfigContext from '../../contexts/GlobalConfig/GlobalConfig';
+import DeskoApi from '../../API/Desko/Desko';
+
+const initialFormValues = { name: "" };
+const commState = {
+  default: 0,
+  loading: 1,
+  error: 2
+};
 
 const Users = props => {
-  const commState = {
-    default: 0,
-    loading: 1,
-    error: 2
-  };
-
   const [users, setUsers] = useState([]);
   const [loadingState, setLoading] = useState(commState.default);
-  const [newUserName, setNewUserName] = useState("");
 
-  useEffect(() => {
-    // load the users
-    refreshUsers();
-  }, []);
+  const onSubmit = (values) => {
+    //console.log("Form submitted " + JSON.stringify(values));
+    addUser(values.name);
+  };
 
-  const refreshUsers = () => {
+  const { values, handleChange, handleSubmit } =
+  useForm({ initialValues: initialFormValues, onSubmit: onSubmit });
+
+  // TODO: move some of this handling/api to an external file
+  // TODO: you should be able to generate a client API from a JSON API config
+  const refreshUsers = useCallback(() => {
     setLoading(commState.loading);
 
-    fetch("/api/users")
-      .then(response => response.json())
+    DeskoApi.getUsers()
       .then(responseData => {
         setLoading(commState.default);
         setUsers(responseData);
@@ -30,13 +36,12 @@ const Users = props => {
       .catch(err => {
         setLoading(commState.error);
       });
-  };
+  }, []);
 
   const deleteUser = (id) => {
     setLoading(commState.loading);
 
-    fetch("/api/user/" + id, { method: "DELETE" })
-      .then(response => response.json())
+    DeskoApi.deleteUser(id)
       .then(response => {
         refreshUsers();
       })
@@ -49,15 +54,7 @@ const Users = props => {
   const addUser = (name) => {
     setLoading(commState.loading);
 
-    fetch(
-      "/api/user",
-      {
-        method: "POST",
-        mode: "cors",
-        body: JSON.stringify({ name: name }),
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
-      })
-      .then(response => response.json())
+    DeskoApi.addUser(name)
       .then(response => {
         refreshUsers();
       })
@@ -65,7 +62,12 @@ const Users = props => {
         setLoading(commState.default);
         setLoading(commState.error);
       });
-  }
+  };
+
+  useEffect(() => {
+    // load the users
+    refreshUsers();
+  }, [refreshUsers]);
 
   /*
   <input
@@ -73,6 +75,9 @@ const Users = props => {
     value={newUserName}
     onChange={(e) => setNewUserName(e.target.value)} />
   */
+
+  // <Form fields={{ name: { type: "text", value: "" } }}/>
+  // <button onClick={() => addUser(newUserName)}>Add User</button>
 
   return (
     <div>
@@ -94,13 +99,17 @@ const Users = props => {
       </div>
       <div>
         Name:
-        <Form fields={{ name: { type: "text", value: "" } }}/>
-        <button onClick={() => addUser(newUserName)}>Add User</button>
+        <input
+          type="text"
+          name="name"
+          onChange={handleChange}
+          value={values.name} />
+        <button onClick={handleSubmit}>Add User</button>
       </div>
       <ul>
-        {users.map(user => {
+        {users.map((user, ind)=> {
           return (
-            <li>
+            <li key={ind}>
               {user.name}
               <button onClick={() => deleteUser(user._id)}>Delete</button>
             </li>

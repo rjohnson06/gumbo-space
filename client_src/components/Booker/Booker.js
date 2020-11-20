@@ -1,20 +1,60 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
+
+import _ from 'lodash';
 
 import ReservationEditor from './ReservationEditor/ReservationEditor';
 import DayOfWeek from './DayOfWeek/DayOfWeek';
-import Modal from '../../UI/Modal/Modal';
-import classes from './Booker.module.css';
-import modalClasses from '../../UI/Modal/Modal.module.css';
+import Modal from '../UI/Modal/Modal';
+import DeskoApi from '../../API/Desko/Desko';
 
-class Booker extends Component {
-  static #editingState = {
-    default: 0,
-    changingStartTime: 1,
-    changingEndTime: 2
-  };
+import classes from './Booker.module.css';
+import modalClasses from '../UI/Modal/Modal.module.css';
+
+const updateReservation = (resId, startDate, endDate, userId) => {
+  const currentEntryInd = this.state.reservedTimes.findIndex(reservation => {
+    return resId === reservation.id;
+  });
+
+  const clone = _.cloneDeep(this.state.reservedTimes[currentEntryInd]);
+  clone.startDate = startDate;
+  clone.endDate = endDate;
+  clone.userId = userId
+
+  const sources = {};
+  sources[currentEntryInd] = clone;
+
+  this.setState({
+    reservedTimes: Object.assign([], this.state.reservedTimes, sources)
+  });
+};
+
+const createReservation = (startDate, endDate, userId, deskId) => {
+  const reservations = [
+    ...this.state.reservedTimes
+  ];
+
+  reservations.push({
+    id: reservations.length,
+    userId: userId,
+    startDate: startDate,
+    endDate: endDate,
+    deskId: deskId
+  });
+
+  return reservations.length;
+};
+
+const editingState = {
+  default: 0,
+  changingStartTime: 1,
+  changingEndTime: 2
+};
+
+const Booker = props => {
+
+  [editionState, setEditionState] = useState(editingState.default);
 
   state = {
-    editionState: Booker.#editingState.default,
     resIdEdited: null,
     lastTimeSlotDate: null
   };
@@ -157,84 +197,82 @@ class Booker extends Component {
     });
   }
 
-  render() {
-    const props = this.props;
+  const props = this.props;
 
-    function addDaysToDate(date, days) {
-      var newDate = new Date(date.valueOf());
-      newDate.setDate(newDate.getDate() + days);
-      return newDate;
-    }
-
-    const datesInWeek = [props.date];
-    for (let x = props.date.getDay() - 1; x >= 0; x--) {
-      datesInWeek.unshift(addDaysToDate(props.date, x - props.date.getDay()));
-    }
-
-    for (let y = props.date.getDay() + 1; y < 7; y++) {
-      datesInWeek.push(addDaysToDate(props.date, y - props.date.getDay()));
-    }
-
-    const dayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-    /*
-    grid-column: col ;
-    grid-row: row ;
-    */
-
-    return (
-      <div
-        onMouseDown={this.bookerMouseDown}
-        onMouseUp={this.bookerMouseUp}
-        onMouseMove={this.onMouseMove}
-        className={classes.bookerBody} >
-        <h2>Desk Calendar</h2>
-        <div className={classes.dayOfWeekHeaderContainer}>
-          {datesInWeek.map((date, ind) => {
-            return (
-              <div className={classes.dayOfWeekHeader} key={ind}>{dayOfWeekNames[date.getUTCDay()]} {date.getUTCMonth() + "/" + date.getUTCDate()}</div>
-            );
-          })}
-        </div>
-        <div className={classes.bookerDates}>
-          {datesInWeek.map((date, ind) => {
-
-            const dayStartDate = new Date(date);
-            //dayStartDate.setMinutes(0);
-            dayStartDate.setHours(0,0,0,0);
-
-            const dayEndDate = new Date(date);
-            //dayEndDate.setMinutes(59);
-            dayEndDate.setHours(23, 59, 0, 0);
-
-            const validReservations = props.deskReservations.filter(reservation => {
-              return reservation.startDate >= dayStartDate && reservation.endDate <= dayEndDate;
-            });
-
-            return (
-              <DayOfWeek
-                timeSegmentLengthMinutes={this.timeSegmentLengthMinutes}
-                onMouseLeave={this.dayOfWeekMouseLeave}
-                validReservations={validReservations}
-                dayStartDate={dayStartDate}
-                dayEndDate={dayEndDate}
-                key={ind}
-                resStartOnMouseDown={this.resStartOnMouseDown}
-                resEndOnMouseDown={this.resEndOnMouseDown}
-                timeSlotClicked={this.timeSlotClicked} />
-            );
-          })}
-        </div>
-        <Modal show={this.state.showReservationEditor} modalClosed={this.reservationEditorClosed} classes={modalClasses.reservationEditor}>
-          <ReservationEditor
-            reservation={props.deskReservations.find(res => res.id === this.state.resIdEdited)}
-            show={this.state.showReservationEditor}
-            users={this.props.users}// good canditate for redux global store
-            />
-        </Modal>
-      </div>
-    );
+  function addDaysToDate(date, days) {
+    var newDate = new Date(date.valueOf());
+    newDate.setDate(newDate.getDate() + days);
+    return newDate;
   }
+
+  const datesInWeek = [props.date];
+  for (let x = props.date.getDay() - 1; x >= 0; x--) {
+    datesInWeek.unshift(addDaysToDate(props.date, x - props.date.getDay()));
+  }
+
+  for (let y = props.date.getDay() + 1; y < 7; y++) {
+    datesInWeek.push(addDaysToDate(props.date, y - props.date.getDay()));
+  }
+
+  const dayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  /*
+  grid-column: col ;
+  grid-row: row ;
+  */
+
+  return (
+    <div
+      onMouseDown={this.bookerMouseDown}
+      onMouseUp={this.bookerMouseUp}
+      onMouseMove={this.onMouseMove}
+      className={classes.bookerBody} >
+      <h2>Desk Calendar</h2>
+      <div className={classes.dayOfWeekHeaderContainer}>
+        {datesInWeek.map((date, ind) => {
+          return (
+            <div className={classes.dayOfWeekHeader} key={ind}>{dayOfWeekNames[date.getUTCDay()]} {date.getUTCMonth() + "/" + date.getUTCDate()}</div>
+          );
+        })}
+      </div>
+      <div className={classes.bookerDates}>
+        {datesInWeek.map((date, ind) => {
+
+          const dayStartDate = new Date(date);
+          //dayStartDate.setMinutes(0);
+          dayStartDate.setHours(0,0,0,0);
+
+          const dayEndDate = new Date(date);
+          //dayEndDate.setMinutes(59);
+          dayEndDate.setHours(23, 59, 0, 0);
+
+          const validReservations = props.deskReservations.filter(reservation => {
+            return reservation.startDate >= dayStartDate && reservation.endDate <= dayEndDate;
+          });
+
+          return (
+            <DayOfWeek
+              timeSegmentLengthMinutes={this.timeSegmentLengthMinutes}
+              onMouseLeave={this.dayOfWeekMouseLeave}
+              validReservations={validReservations}
+              dayStartDate={dayStartDate}
+              dayEndDate={dayEndDate}
+              key={ind}
+              resStartOnMouseDown={this.resStartOnMouseDown}
+              resEndOnMouseDown={this.resEndOnMouseDown}
+              timeSlotClicked={this.timeSlotClicked} />
+          );
+        })}
+      </div>
+      <Modal show={this.state.showReservationEditor} modalClosed={this.reservationEditorClosed} classes={modalClasses.reservationEditor}>
+        <ReservationEditor
+          reservation={props.deskReservations.find(res => res.id === this.state.resIdEdited)}
+          show={this.state.showReservationEditor}
+          users={this.props.users}// good canditate for redux global store
+          />
+      </Modal>
+    </div>
+  );
 };
 
 export default Booker;

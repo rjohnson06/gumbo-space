@@ -1,196 +1,152 @@
-import React, { Component } from 'react';
-import Calendar from 'react-calendar';
-import _ from 'lodash';
+import React, { useState, useEffect } from 'react';
+import { DateTime, Interval } from 'luxon';
 
-import Booker from './Booker/Booker';
+import Booker from '../Booker/Booker';
 import Desk from './Desk/Desk';
 import Modal from '../UI/Modal/Modal';
+import DeskoApi from '../../API/Desko/Desko';
 
 import classes from './Map.module.css';
-import bookerClasses from './Booker/Booker.module.css';
 import modalClasses from '../UI/Modal/Modal.module.css';
 
 import 'react-calendar/dist/Calendar.css';
 
-class Map extends Component {
-  // just a test function
-  addHoursToDate = function(date, h) {
-    date.setTime(date.getTime() + (h*60*60*1000));
-    return date;
+// TODO : loading states, etc...
+const Map = props => {
+  const [selectedDeskId, setSelectedDeskId] = useState(null);
+  const [showBooker, setShowBooker] = useState(false);
+  const [renderableDesks, setRenderableDesks] = useState([]);
+  const [allUsers, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+
+  const onDeskClicked = (id, evt) => {
+
+    // TODO : uncomment this when the booker works again
+    //setSelectedDeskId(id);
+    //setShowBooker(true);
   };
 
-  state = {
-    selectedDeskId: 1,
-    showBooker: false,
-    viewDate: new Date(),
-
-    users: [
-      {name: "Sam", userId: 1},
-      {name: "Ryan", userId: 2}
-    ],
-    desks: [
-      {id: 1, location: null, type: null},
-      {id: 2, location: null, type: null}
-    ],
-    deskOwners: [
-      {userId: 1, deskId: 1},
-      {userId: 2, deskId: 2}
-    ],
-    reservedTimes: [
-      {id: 1, startDate: this.addHoursToDate(new Date(), -4), endDate: this.addHoursToDate(new Date(), 4), userId: 1, deskId: 1},
-      {id: 2, startDate: new Date(), endDate: new Date(), userId: 2, deskId: 2}
-    ]
+  const onBookerClosed = () => {
+    setShowBooker(false);
   };
-
-  // DataStore Queries
 
   // desk + occupied, user.name
-  getDesksRenderableData = () => {
-    return this.state.desks.map(desk => {
-      const flattenedDesk = _.cloneDeep(desk);
+  const getDesksRenderableData = (users) => {
+    return DeskoApi.getDesks()
+      .then((desks) => {
+        desks.forEach(desk => {
+          const matchingUser = users.find(user => user._id === desk.owner);
 
-      const ownerId = this.state.deskOwners.find(owner => owner.deskId === desk.id).userId;
+          desk.ownerName = matchingUser ? matchingUser.name : "";
 
-      flattenedDesk.ownerName =
-        this.state.users.find(user => user.userId === ownerId).name;
+          desk.reservationIntervals = desk.reservations.map(res => {
+            return Interval.fromDateTimes(
+              DateTime.fromISO(res.startDate),
+              DateTime.fromISO(res.endDate));
+          });
 
-      flattenedDesk.occupied = this.state.reservedTimes.filter(reservation => {
-        return reservation.deskId === flattenedDesk.id &&
-          this.state.viewDate > reservation.startDate &&
-          this.state.viewDate < reservation.endDate;
-      }).length > 0;
+          const viewDateTime = DateTime.fromJSDate(props.viewDate);
+          desk.occupied = desk.reservationIntervals
+            .filter(interval => interval.contains(viewDateTime))
+            .length > 0;
+        });
 
-      return flattenedDesk;
-    });
-  };
-
-  getDeskBookerData = (deskId) => {
-    return this.state.reservedTimes
-      .filter(reservation => {
-        return reservation.deskId === deskId;
+        return desks;
       })
-      .map(reservation => {
-        const flattenedUserReservation = _.cloneDeep(reservation);
-        flattenedUserReservation.userName = this.state.users.find(user => user.userId === reservation.userId).name;
-
-        return flattenedUserReservation;
+      .catch(error => {
+        throw new Error("unhandled problem getting desk data");
       });
   };
 
-  updateReservation = (resId, startDate, endDate, userId) => {
-    const currentEntryInd = this.state.reservedTimes.findIndex(reservation => {
-      return resId === reservation.id;
-    });
-
-    const clone = _.cloneDeep(this.state.reservedTimes[currentEntryInd]);
-    clone.startDate = startDate;
-    clone.endDate = endDate;
-    clone.userId = userId
-
-    const sources = {};
-    sources[currentEntryInd] = clone;
-
-    this.setState({
-      reservedTimes: Object.assign([], this.state.reservedTimes, sources)
-    });
+  const refreshDesks = (users) => {
+    getDesksRenderableData(users)
+      .then((renderDesks) => {
+        setRenderableDesks(renderDesks);
+      });
   };
 
-  createReservation = (startDate, endDate, userId, deskId) => {
-    const reservations = [
-      ...this.state.reservedTimes
-    ];
-
-    reservations.push({
-      id: reservations.length,
-      userId: userId,
-      startDate: startDate,
-      endDate: endDate,
-      deskId: deskId
-    });
-
-    return reservations.length;
+  const refreshUsers = () => {
+    return DeskoApi
+      .getUsers()
+      .then(users => {
+        setUsers(users);
+        return users;
+      });
   };
 
-  deleteReservation = (resId) => {
+  useEffect(() => {
+    refreshUsers()
+      .then(users => {
+        refreshDesks(users);
+      });
+  }, []);
 
-  };
-  // End Datastore Queries
-
-  onDeskClicked = (id, evt) => {
-    console.log("desk clicked");
-    this.setState({
-      selectedDeskId: id,
-      showBooker: true
-    });
-  };
-
-  onBookerClosed = () => {
-    this.setState({
-      showBooker: false
-    });
+  const handleDeleteClicked = deskId => {
+    DeskoApi
+      .deleteDesk(deskId)
+      .then(() => { refreshDesks(allUsers) });
   };
 
-  onViewAvailCalendarChange = date => {
-    const newViewDate = new Date(date.getTime());
-    this.setState({ viewDate: newViewDate });
+  const handleAddDesk = () => {
+    DeskoApi
+      .addDesk(selectedUserId)
+      .then(() => { refreshDesks(allUsers) });
   };
 
-  onViewAvailTimeChange = timeMinutes => {
-    const newViewDate = new Date(this.state.viewDate.getTime());
-    newViewDate.setHours(timeMinutes / 60);
-    newViewDate.setMinutes(timeMinutes % 60);
+  /*
+  <Modal show={this.state.showBooker} modalClosed={this.onBookerClosed} classes={modalClasses.bookerModal}>
+    <Booker
+      date={this.state.viewDate}
+      deskEditedId={this.state.selectedDeskId}
+      users={this.state.users} />
+  </Modal>
+  */
 
-    this.setState({ viewDate: newViewDate });
-  };
+  const editUI = (
+    <div>
+      <label>Add Desk</label>
+      <br />
+      <label>Owner : </label>
+      <select
+        value={selectedUserId || "default"}
+        onChange={e => setSelectedUserId(e.target.value)}>
+        { [<option key="default">-- Please select a user --</option>]
+            .concat(allUsers.map((user, ind) => {
+              return <option key={user._id} value={user._id}>{user.name}</option>
+            }))
+        }
+      </select>
+      <button onClick={handleAddDesk}>Add Desk</button>
+    </div>
+  );
 
-  render() {
-    const renderableDesks = this.getDesksRenderableData();
-
-    return (
-      <div>
-        <div>
-          <h2>View Date</h2>
-          <p>{this.state.viewDate.toString()}</p>
-          <div className={classes.ViewAvailCalendar}>
-            <Calendar
-              onChange={this.onViewAvailCalendarChange}
-              value={this.state.viewDate}
-            />
-            <Calendar
-              onChange={this.onViewAvailCalendarChange}
-              value={this.state.viewDate}
-            />
+  return (
+    <div>
+      { props.showEditUI ?
+          editUI :
+          null }
+      <div className={classes.map}>
+      {renderableDesks.map(desk => {
+        return (
+          <div className={classes.deskContainer} key={desk._id}>
+            <Desk
+              occupied={desk.occupied}
+              name={desk.ownerName}
+              clicked=
+                {!showBooker ?
+                  (evt) => onDeskClicked(desk.id, evt) :
+                  () => {}} />
+            { props.showEditUI ? <button
+              className={classes.deskDeleteButton}
+              onClick={() => handleDeleteClicked(desk._id)}>
+                X
+            </button> : null }
           </div>
-          <div className={classes.ViewAvailTime}>
-            <p>Time: {this.state.viewDate.getHours()}:{this.state.viewDate.getMinutes()}</p>
-            <input
-              type="range"
-              min="0"
-              max="1439"
-              step="15"
-              value={this.state.viewDate.getHours() * 60 + this.state.viewDate.getMinutes()}
-              onChange={(evt) => this.onViewAvailTimeChange(evt.target.value)} />
-          </div>
-        </div>
-        {renderableDesks.map(desk => {
-          return <Desk
-                  key={desk.id}
-                  occupied={desk.occupied}
-                  name={desk.ownerName}
-                  clicked={!this.state.showBooker ? (evt) => this.onDeskClicked(desk.id, evt) : () => {}} />
-        })}
-        <Modal show={this.state.showBooker} modalClosed={this.onBookerClosed} classes={modalClasses.bookerModal}>
-          <Booker
-            date={this.state.viewDate}
-            deskEditedId={this.state.selectedDeskId}
-            deskReservations={this.getDeskBookerData(this.state.selectedDeskId)}
-            users={this.state.users}
-            updateReservation={this.updateReservation}
-            createReservation={this.createReservation} />
-        </Modal>
+        );
+      })}
       </div>
-    );
-  }
+    </div>
+  );
 }
 
 export default Map;

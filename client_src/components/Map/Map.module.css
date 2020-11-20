@@ -1,7 +1,19 @@
-.ViewAvailCalendar div {
-  margin: auto;
+
+.map {
+  display: flex;
+  flex-flow: row wrap;
+  border: 1px solid black;
 }
 
-.ViewAvailTime {
-  
+.deskContainer {
+  position: relative;
+  margin: 15px;
+}
+
+.deskDeleteButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  cursor: pointer;
+  border-radius: 50%;
 }

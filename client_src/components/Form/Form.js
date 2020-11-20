@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import _ from 'lodash';
 
 const Form = (props) => {
   // we want this to update when the props.fields changes

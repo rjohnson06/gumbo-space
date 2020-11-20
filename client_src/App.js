@@ -1,21 +1,23 @@
 import React from 'react';
 import {
-  BrowserRouter as Router,
   Switch,
   Route,
   Link
 } from "react-router-dom";
 
-import logo from './logo.svg';
 import './App.css';
-import Map from './components/Map/Map';
+import classes from './App.module.css';
+import Main from './components/Main/Main';
 import Users from './components/Users/Users';
-import DateJsonMaker from './components/Test/DateJsonMaker';
+import GlobalConfigContext from './contexts/GlobalConfig/GlobalConfig';
 
 function App() {
 
+  //<GlobalConfigContext.Provider value={{ apiUrl: "http://localhost:3000" }}>
+  //</GlobalConfigContext.Provider>
+
   return (
-    <div>
+    <div className={classes.App}>
       <nav>
         <ul>
           <li>
@@ -29,7 +31,7 @@ function App() {
 
       <Switch>
         <Route exact path="/">
-          <Map />
+          <Main />
         </Route>
         <Route path="/users">
           <Users />
