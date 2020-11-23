@@ -20,10 +20,9 @@ const Map = props => {
   const [selectedUserId, setSelectedUserId] = useState(null);
 
   const onDeskClicked = (id, evt) => {
-
-    // TODO : uncomment this when the booker works again
-    //setSelectedDeskId(id);
-    //setShowBooker(true);
+    console.log("desk clicked id " + id);
+    setSelectedDeskId(id);
+    setShowBooker(true);
   };
 
   const onBookerClosed = () => {
@@ -111,8 +110,6 @@ const Map = props => {
     </div>
   );
 
-  console.log("props.viewDate " + props.viewDate);
-
   return (
     <div>
       { props.showEditUI ?
@@ -127,7 +124,7 @@ const Map = props => {
               name={desk.ownerName}
               clicked=
                 {!showBooker ?
-                  (evt) => onDeskClicked(desk.id, evt) :
+                  (evt) => onDeskClicked(desk._id, evt) :
                   () => {}} />
             { props.showEditUI ? <button
               className={classes.deskDeleteButton}
@@ -138,12 +135,14 @@ const Map = props => {
         );
       })}
       </div>
-      <Modal show={showBooker} modalClosed={onBookerClosed} classes={modalClasses.bookerModal}>
-        <Booker
-          date={props.viewDate}
-          deskEditedId={selectedDeskId}
-          users={allUsers} />
-      </Modal>
+      { selectedDeskId !== null ?
+        <Modal show={showBooker} modalClosed={onBookerClosed} classes={modalClasses.bookerModal}>
+          <Booker
+            date={props.viewDate}
+            deskEditedId={selectedDeskId} />
+        </Modal> :
+        null
+      }
     </div>
   );
 }

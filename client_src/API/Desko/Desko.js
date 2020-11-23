@@ -32,7 +32,8 @@ class Desko {
 
   static async getDesk(id) {
     return fetch(Desko.#apiUrl + "/api/desk/" + id)
-      .then(response => response.json());
+      .then(response => response.json())
+      .then(response => response.length > 0 ? response[0] : null);
   }
 
   static async addDesk(ownerId) {

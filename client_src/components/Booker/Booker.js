@@ -10,22 +10,18 @@ import DeskoApi from '../../API/Desko/Desko';
 import classes from './Booker.module.css';
 import modalClasses from '../UI/Modal/Modal.module.css';
 
-const updateReservation = (resId, startDate, endDate, userId) => {
-  const currentEntryInd = this.state.reservedTimes.findIndex(reservation => {
-    return resId === reservation.id;
-  });
+const buildValidDateTimes = timeSegmentLengthMinutes => {
+  const times = [];
+  for (let t = 0; t <= 24 * 60; t += timeSegmentLengthMinutes) {
+    const date = new Date(this.props.dayStartDate);
 
-  const clone = _.cloneDeep(this.state.reservedTimes[currentEntryInd]);
-  clone.startDate = startDate;
-  clone.endDate = endDate;
-  clone.userId = userId
+    date.setHours(t / 60);
+    date.setMinutes(t % 60);
 
-  const sources = {};
-  sources[currentEntryInd] = clone;
+    times.push(date);
+  }
 
-  this.setState({
-    reservedTimes: Object.assign([], this.state.reservedTimes, sources)
-  });
+  return times;
 };
 
 const createReservation = (startDate, endDate, userId, deskId) => {
@@ -44,82 +40,129 @@ const createReservation = (startDate, endDate, userId, deskId) => {
   return reservations.length;
 };
 
+const findTimeSlotData = (evt) => {
+  const x = evt.clientX;
+  const y = evt.clientY;
+  // I would like to have the references to all the reservation elements directly
+  // rather than querying, maybe with refs?
+  const reservationElements =
+    Array.from(document.querySelectorAll('[data-res-start'))
+    .concat(Array.from(document.querySelectorAll('[data-res-end]')));
+
+  reservationElements.forEach((res, i) => {
+    res.parentElement.style["pointer-events"] = "none";
+  });
+
+  const element = document.elementFromPoint(x, y);
+
+  reservationElements.forEach((res, i) => {
+    res.parentElement.style["pointer-events"] = "auto";
+  });
+
+  return findTimeSlotDateFromElem(element);
+}
+
+const findTimeSlotDateFromElem = (element) => {
+  const timeSlotDateJson = element.dataset.dateStart;
+  const timeSlotDate = new Date(timeSlotDateJson);
+  const timeSlotEndDate = new Date(element.dataset.dateEnd);
+
+  return {
+    timeSlotStartDate: timeSlotDate,
+    timeSlotEndDate: timeSlotEndDate
+  };
+}
+
 const editingState = {
-  default: 0,
-  changingStartTime: 1,
-  changingEndTime: 2
+  loading: 0,
+  editing: 1,
+  changingStartTime: 2,
+  changingEndTime: 3,
+  creatingReservation: 4
 };
 
+// This draggable stuff creates a lot of changes
+// we throttle how often we're synching with the server
 const Booker = props => {
 
-  const [showReservationEditor, setShowReservationEditor] = useState(false);
-  const [editionState, setEditionState] = useState(editingState.default);
-  const [resIdEdited, setResIdEdited] = useState(null);
+  const [editionState, setEditionState] = useState(editingState.loading);
+  const [resEdited, setResEdited] = useState(null);
   const [lastTimeSlotDate, setLastTimeSlotDate] = useState(null);
-  const [reservations, setReservations] = useState([]);
+  const [newResData, setNewResData] = useState(null);
+
+  const [desk, setDesk] = useState(null);
+  const [users, setUsers] = useState(null);
+
+  useEffect(() => {
+    DeskoApi.getUsers()
+      .then(allUsers => {
+        setUsers(allUsers);
+      });
+
+    DeskoApi.getDesk(props.deskEditedId)
+      .then(deskData => {
+        setDesk(deskData);
+      });
+  }, []);
+
+  // transition to the finished loading state once we get all the data we need
+  useEffect(() => {
+    if (desk !== null && users !== null) {
+      setEditionState(editingState.editing);
+    }
+  }, [desk, users]);
 
   const timeSegmentLengthMinutes = 30;
 
+  const updateReservation = (resId, startDate, endDate, userId) => {
+    const updatedDesk = { ...desk };
+    updatedDesk.reservations = updateDesk.reservations.map(res => {
+      if (res._id === resId) {
+        return { ...res, startDate: startDate, endDate: endDate, userId: userId };
+      }
+
+      return res;
+    });
+
+    setDesk(updatedDesk);
+  };
+
   const resStartOnMouseDown = (evt) => {
-    const timeSlotData = this.findTimeSlotData(evt);
+    if (editionState !== editingState.editing) {
+      return;
+    }
+
+    const timeSlotData = findTimeSlotData(evt);
+
+    const resId = parseInt(evt.target.getAttribute("data-res-start"));
 
     setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
     setEditionState(editingState.changingStartTime);
-    setResIdEdited(parseInt(evt.target.getAttribute("data-res-start")));
+    setResEdited(desk.reservations.find(res => res._id === resId));
   }
 
   const resEndOnMouseDown = (evt) => {
-    const timeSlotData = this.findTimeSlotData(evt);
+    if (editionState !== editingState.editing) {
+      return;
+    }
+
+    const timeSlotData = findTimeSlotData(evt);
+
+    const resId = parseInt(evt.target.getAttribute("data-res-end"))
 
     setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
     setEditionState(editingState.changingEndTime);
-    setResIdEdited(parseInt(evt.target.getAttribute("data-res-end")));
-  }
-
-  const findTimeSlotData = (evt) => {
-    const x = evt.clientX;
-    const y = evt.clientY;
-    // I would like to have the references to all the reservation elements directly
-    // rather than querying, maybe with refs?
-    const reservationElements =
-      Array.from(document.querySelectorAll('[data-res-start'))
-      .concat(Array.from(document.querySelectorAll('[data-res-end]')));
-
-    reservationElements.forEach((res, i) => {
-      res.parentElement.style["pointer-events"] = "none";
-    });
-
-    const element = document.elementFromPoint(x, y);
-
-    reservationElements.forEach((res, i) => {
-      res.parentElement.style["pointer-events"] = "auto";
-    });
-
-    return this.findTimeSlotDateFromElem(element);
-  }
-
-  const findTimeSlotDateFromElem = (element) => {
-    const timeSlotDateJson = element.dataset.dateStart;
-    const timeSlotDate = new Date(timeSlotDateJson);
-    const timeSlotEndDate = new Date(element.dataset.dateEnd);
-
-    return {
-      timeSlotStartDate: timeSlotDate,
-      timeSlotEndDate: timeSlotEndDate
-    }
+    setResEdited(desk.reservations.find(res => res._id === resId));
   }
 
   const onMouseMove = (evt) => {
     if (editionState !== editingState.changingStartTime &&
-      editionState !== editingState.changingEndTime) {
+        editionState !== editingState.changingEndTime) {
         return;
-      }
+    }
 
-    const reservation =
-      props.deskReservations.find(
-        (res) => res.id === this.state.resIdEdited);
-
-    const timeSlotData = this.findTimeSlotData(evt);
+    const reservation = resEdited;
+    const timeSlotData = findTimeSlotData(evt);
 
     if (lastTimeSlotDate === null) {
       setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
@@ -133,18 +176,18 @@ const Booker = props => {
             (timeSlotData.timeSlotStartDate < reservation.endDate ||
                 timeSlotData.timeSlotStartDate.getTime() === reservation.endDate.getTime())) {
 
-            props.updateReservation(
+            updateReservation(
               resIdEdited,
               timeSlotData.timeSlotStartDate,
               reservation.endDate,
               reservation.userId);
           }
 
-          if (this.state.editionState === editingState.changingEndTime &&
+          if (editionState === editingState.changingEndTime &&
               (timeSlotData.timeSlotEndDate > reservation.startDate ||
                 timeSlotData.timeSlotEndDate.getTime() === reservation.startDate.getTime())) {
 
-            props.updateReservation(
+            updateReservation(
               resIdEdited,
               reservation.startDate,
               timeSlotData.timeSlotEndDate,
@@ -152,42 +195,35 @@ const Booker = props => {
           }
         }
 
-        this.setState({
-          lastTimeSlotDate: timeSlotData.timeSlotStartDate
-        });
+        setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
       }
     }
   }
 
   const timeSlotClicked = (evt) => {
-    const timeSlotData = this.findTimeSlotDateFromElem(evt.target);
+    if (editionState === editingState.loading) {
+      return;
+    }
 
-    // user is creating a new reservation
-    // enter reservation create state
-    // modal within the booker for setting the data
+    const timeSlotData = findTimeSlotDateFromElem(evt.target);
 
-    // TODO : make cleaner state management
-    //createReservation = (startDate, endDate, userId, deskId)
-    const newId = props.createReservation(
-      timeSlotData.timeSlotStartDate,
-      timeSlotData.timeSlotEndDate,
-      1,
-      props.deskEditedId
-    );
+    setNewResData({
+      startDate: timeSlotData.timeSlotStartDate,
+      endDate: timeSlotData.timeSlotEndDate
+    });
 
-    setShowReservationEditor(true);
-    setResIdEdited(newId);
+    setEditionState(editingState.creatingReservation);
   }
 
   const reservationEditorClosed = () => {
-    setShowReservationEditor(false);
+    setEditionState(editingState.editing);
   }
 
   const bookerMouseDown = (evt) => {
   }
 
   const bookerMouseUp = () => {
-    setEditionState(editingState.default);
+    setEditionState(editingState.editing);
     setResIdEdited(null);
   }
 
@@ -223,9 +259,9 @@ const Booker = props => {
 
   return (
     <div
-      onMouseDown={this.bookerMouseDown}
-      onMouseUp={this.bookerMouseUp}
-      onMouseMove={this.onMouseMove}
+      onMouseDown={bookerMouseDown}
+      onMouseUp={bookerMouseUp}
+      onMouseMove={onMouseMove}
       className={classes.bookerBody} >
       <h2>Desk Calendar</h2>
       <div className={classes.dayOfWeekHeaderContainer}>
@@ -234,7 +270,8 @@ const Booker = props => {
             <div
               className={classes.dayOfWeekHeader}
               key={ind}>
-                {dayOfWeekNames[date.getUTCDay()]} {date.getUTCMonth() + "/" + date.getUTCDate()}
+                {dayOfWeekNames[date.getUTCDay()]}
+                {date.getUTCMonth() + "/" + date.getUTCDate()}
             </div>
           );
         })}
@@ -250,16 +287,19 @@ const Booker = props => {
           //dayEndDate.setMinutes(59);
           dayEndDate.setHours(23, 59, 0, 0);
 
-          const validReservations =
-            props.deskReservations.filter(reservation => {
+          let validReservations = [];
+
+          if (editionState !== editingState.loading) {
+            console.log(JSON.stringify(desk));
+            validReservations = desk.reservations.filter(reservation => {
               return reservation.startDate >= dayStartDate &&
                 reservation.endDate <= dayEndDate;
             });
+          }
 
           return (
             <DayOfWeek
               timeSegmentLengthMinutes={timeSegmentLengthMinutes}
-              onMouseLeave={dayOfWeekMouseLeave}
               validReservations={validReservations}
               dayStartDate={dayStartDate}
               dayEndDate={dayEndDate}
@@ -270,16 +310,19 @@ const Booker = props => {
           );
         })}
       </div>
-      <Modal
-        show={showReservationEditor}
-        modalClosed={reservationEditorClosed}
-        classes={modalClasses.reservationEditor}>
-        <ReservationEditor
-          reservation={props.deskReservations.find(res => res.id === resIdEdited)}
-          show={showReservationEditor}
-          users={props.users}// good canditate for redux global store
-          />
-      </Modal>
+      { editionState === editingState.loading ?
+          null :
+          <Modal
+            show={editionState === editingState.creatingReservation}
+            modalClosed={reservationEditorClosed}
+            classes={modalClasses.reservationEditor}>
+            <ReservationEditor
+              timeSegmentLengthMinutes={timeSegmentLengthMinutes}
+              reservation={newResData}
+              show={editionState === editingState.creatingReservation}
+              users={users} />
+          </Modal>
+      }
     </div>
   );
 };
