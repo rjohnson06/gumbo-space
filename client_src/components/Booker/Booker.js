@@ -52,36 +52,31 @@ const editingState = {
 
 const Booker = props => {
 
-  [editionState, setEditionState] = useState(editingState.default);
+  const [showReservationEditor, setShowReservationEditor] = useState(false);
+  const [editionState, setEditionState] = useState(editingState.default);
+  const [resIdEdited, setResIdEdited] = useState(null);
+  const [lastTimeSlotDate, setLastTimeSlotDate] = useState(null);
+  const [reservations, setReservations] = useState([]);
 
-  state = {
-    resIdEdited: null,
-    lastTimeSlotDate: null
-  };
+  const timeSegmentLengthMinutes = 30;
 
-  timeSegmentLengthMinutes = 30;
-
-  resStartOnMouseDown = (evt) => {
+  const resStartOnMouseDown = (evt) => {
     const timeSlotData = this.findTimeSlotData(evt);
 
-    this.setState({
-      lastTimeSlotDate: timeSlotData.timeSlotStartDate,
-      editionState: Booker.#editingState.changingStartTime,
-      resIdEdited: parseInt(evt.target.getAttribute("data-res-start"))
-    });
+    setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
+    setEditionState(editingState.changingStartTime);
+    setResIdEdited(parseInt(evt.target.getAttribute("data-res-start")));
   }
 
-  resEndOnMouseDown = (evt) => {
+  const resEndOnMouseDown = (evt) => {
     const timeSlotData = this.findTimeSlotData(evt);
 
-    this.setState({
-      lastTimeSlotDate: timeSlotData.timeSlotStartDate,
-      editionState: Booker.#editingState.changingEndTime,
-      resIdEdited: parseInt(evt.target.getAttribute("data-res-end"))
-    });
+    setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
+    setEditionState(editingState.changingEndTime);
+    setResIdEdited(parseInt(evt.target.getAttribute("data-res-end")));
   }
 
-  findTimeSlotData = (evt) => {
+  const findTimeSlotData = (evt) => {
     const x = evt.clientX;
     const y = evt.clientY;
     // I would like to have the references to all the reservation elements directly
@@ -103,7 +98,7 @@ const Booker = props => {
     return this.findTimeSlotDateFromElem(element);
   }
 
-  findTimeSlotDateFromElem = (element) => {
+  const findTimeSlotDateFromElem = (element) => {
     const timeSlotDateJson = element.dataset.dateStart;
     const timeSlotDate = new Date(timeSlotDateJson);
     const timeSlotEndDate = new Date(element.dataset.dateEnd);
@@ -114,41 +109,46 @@ const Booker = props => {
     }
   }
 
-  // TODO : trigger mouseEnter events on Booker based on mouse position
-  onMouseMove = (evt) => {
-    if (this.state.editionState !== Booker.#editingState.changingStartTime &&
-      this.state.editionState !== Booker.#editingState.changingEndTime) {
+  const onMouseMove = (evt) => {
+    if (editionState !== editingState.changingStartTime &&
+      editionState !== editingState.changingEndTime) {
         return;
       }
 
-    const reservation = this.props.deskReservations.find((res) => res.id === this.state.resIdEdited);
+    const reservation =
+      props.deskReservations.find(
+        (res) => res.id === this.state.resIdEdited);
 
     const timeSlotData = this.findTimeSlotData(evt);
 
-    if (this.state.lastTimeSlotDate === null) {
-      this.setState({
-        lastTimeSlotDate: timeSlotData.timeSlotStartDate
-      });
+    if (lastTimeSlotDate === null) {
+      setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
     } else {
-      if (this.state.lastTimeSlotDate.getTime() !== timeSlotData.timeSlotStartDate.getTime()) {
-        if (this.state.lastTimeSlotDate.getDate() !== timeSlotData.timeSlotStartDate.getDate()) {
-          this.setState({
-            editionState: Booker.#editingState.default
-          });
+      if (lastTimeSlotDate.getTime() !== timeSlotData.timeSlotStartDate.getTime()) {
+        if (lastTimeSlotDate.getDate() !== timeSlotData.timeSlotStartDate.getDate()) {
+          setEditionState(editingState.default);
         } else {
-          if (this.state.editionState === Booker.#editingState.changingStartTime &&
+
+          if (editionState === editingState.changingStartTime &&
             (timeSlotData.timeSlotStartDate < reservation.endDate ||
                 timeSlotData.timeSlotStartDate.getTime() === reservation.endDate.getTime())) {
-            this.props.updateReservation(this.state.resIdEdited, timeSlotData.timeSlotStartDate, reservation.endDate, reservation.userId);
 
-            console.log("" + timeSlotData.timeSlotStartDate);
-            console.log("" + reservation.endDate);
+            props.updateReservation(
+              resIdEdited,
+              timeSlotData.timeSlotStartDate,
+              reservation.endDate,
+              reservation.userId);
           }
 
-          if (this.state.editionState === Booker.#editingState.changingEndTime &&
-          (timeSlotData.timeSlotEndDate > reservation.startDate ||
-            timeSlotData.timeSlotEndDate.getTime() === reservation.startDate.getTime())) {
-            this.props.updateReservation(this.state.resIdEdited, reservation.startDate, timeSlotData.timeSlotEndDate, reservation.userId);
+          if (this.state.editionState === editingState.changingEndTime &&
+              (timeSlotData.timeSlotEndDate > reservation.startDate ||
+                timeSlotData.timeSlotEndDate.getTime() === reservation.startDate.getTime())) {
+
+            props.updateReservation(
+              resIdEdited,
+              reservation.startDate,
+              timeSlotData.timeSlotEndDate,
+              reservation.userId);
           }
         }
 
@@ -159,7 +159,7 @@ const Booker = props => {
     }
   }
 
-  timeSlotClicked = (evt) => {
+  const timeSlotClicked = (evt) => {
     const timeSlotData = this.findTimeSlotDateFromElem(evt.target);
 
     // user is creating a new reservation
@@ -168,36 +168,28 @@ const Booker = props => {
 
     // TODO : make cleaner state management
     //createReservation = (startDate, endDate, userId, deskId)
-    const newId = this.props.createReservation(
+    const newId = props.createReservation(
       timeSlotData.timeSlotStartDate,
       timeSlotData.timeSlotEndDate,
       1,
-      this.props.deskEditedId
+      props.deskEditedId
     );
 
-    this.setState({
-      showReservationEditor: true,
-      resIdEdited: newId
-    });
+    setShowReservationEditor(true);
+    setResIdEdited(newId);
   }
 
-  reservationEditorClosed = () => {
-    this.setState({
-        showReservationEditor: false
-    });
+  const reservationEditorClosed = () => {
+    setShowReservationEditor(false);
   }
 
-  bookerMouseDown = (evt) => {
+  const bookerMouseDown = (evt) => {
   }
 
-  bookerMouseUp = () => {
-    this.setState({
-      editionState: Booker.#editingState.default,
-      resIdEdited: null
-    });
+  const bookerMouseUp = () => {
+    setEditionState(editingState.default);
+    setResIdEdited(null);
   }
-
-  const props = this.props;
 
   function addDaysToDate(date, days) {
     var newDate = new Date(date.valueOf());
@@ -214,7 +206,15 @@ const Booker = props => {
     datesInWeek.push(addDaysToDate(props.date, y - props.date.getDay()));
   }
 
-  const dayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayOfWeekNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ];
 
   /*
   grid-column: col ;
@@ -231,7 +231,11 @@ const Booker = props => {
       <div className={classes.dayOfWeekHeaderContainer}>
         {datesInWeek.map((date, ind) => {
           return (
-            <div className={classes.dayOfWeekHeader} key={ind}>{dayOfWeekNames[date.getUTCDay()]} {date.getUTCMonth() + "/" + date.getUTCDate()}</div>
+            <div
+              className={classes.dayOfWeekHeader}
+              key={ind}>
+                {dayOfWeekNames[date.getUTCDay()]} {date.getUTCMonth() + "/" + date.getUTCDate()}
+            </div>
           );
         })}
       </div>
@@ -246,29 +250,34 @@ const Booker = props => {
           //dayEndDate.setMinutes(59);
           dayEndDate.setHours(23, 59, 0, 0);
 
-          const validReservations = props.deskReservations.filter(reservation => {
-            return reservation.startDate >= dayStartDate && reservation.endDate <= dayEndDate;
-          });
+          const validReservations =
+            props.deskReservations.filter(reservation => {
+              return reservation.startDate >= dayStartDate &&
+                reservation.endDate <= dayEndDate;
+            });
 
           return (
             <DayOfWeek
-              timeSegmentLengthMinutes={this.timeSegmentLengthMinutes}
-              onMouseLeave={this.dayOfWeekMouseLeave}
+              timeSegmentLengthMinutes={timeSegmentLengthMinutes}
+              onMouseLeave={dayOfWeekMouseLeave}
               validReservations={validReservations}
               dayStartDate={dayStartDate}
               dayEndDate={dayEndDate}
               key={ind}
-              resStartOnMouseDown={this.resStartOnMouseDown}
-              resEndOnMouseDown={this.resEndOnMouseDown}
-              timeSlotClicked={this.timeSlotClicked} />
+              resStartOnMouseDown={resStartOnMouseDown}
+              resEndOnMouseDown={resEndOnMouseDown}
+              timeSlotClicked={timeSlotClicked} />
           );
         })}
       </div>
-      <Modal show={this.state.showReservationEditor} modalClosed={this.reservationEditorClosed} classes={modalClasses.reservationEditor}>
+      <Modal
+        show={showReservationEditor}
+        modalClosed={reservationEditorClosed}
+        classes={modalClasses.reservationEditor}>
         <ReservationEditor
-          reservation={props.deskReservations.find(res => res.id === this.state.resIdEdited)}
-          show={this.state.showReservationEditor}
-          users={this.props.users}// good canditate for redux global store
+          reservation={props.deskReservations.find(res => res.id === resIdEdited)}
+          show={showReservationEditor}
+          users={props.users}// good canditate for redux global store
           />
       </Modal>
     </div>

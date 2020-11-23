@@ -93,15 +93,6 @@ const Map = props => {
       .then(() => { refreshDesks(allUsers) });
   };
 
-  /*
-  <Modal show={this.state.showBooker} modalClosed={this.onBookerClosed} classes={modalClasses.bookerModal}>
-    <Booker
-      date={this.state.viewDate}
-      deskEditedId={this.state.selectedDeskId}
-      users={this.state.users} />
-  </Modal>
-  */
-
   const editUI = (
     <div>
       <label>Add Desk</label>
@@ -119,6 +110,8 @@ const Map = props => {
       <button onClick={handleAddDesk}>Add Desk</button>
     </div>
   );
+
+  console.log("props.viewDate " + props.viewDate);
 
   return (
     <div>
@@ -145,6 +138,12 @@ const Map = props => {
         );
       })}
       </div>
+      <Modal show={showBooker} modalClosed={onBookerClosed} classes={modalClasses.bookerModal}>
+        <Booker
+          date={props.viewDate}
+          deskEditedId={selectedDeskId}
+          users={allUsers} />
+      </Modal>
     </div>
   );
 }

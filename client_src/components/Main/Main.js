@@ -47,7 +47,7 @@ const Main = props => {
             value={viewDate.getHours() * 60 + viewDate.getMinutes()}
             onChange={(evt) => onViewAvailTimeChange(evt.target.value)} />
         </div>
-        <Map showEditUI={true} />
+        <Map showEditUI={true} viewDate={viewDate} />
       </div>
 
     </div>

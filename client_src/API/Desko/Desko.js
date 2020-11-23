@@ -98,7 +98,7 @@ class Desko {
 
   // "extra" methods, not 1-1 with the REST API
   static async getFlatDeskData(deskId) {
-    return fetch(Desko.#apiUrl + "/api/desk/" + id)
+    return fetch(Desko.#apiUrl + "/api/desk/" + deskId)
       .then(response => response.json())
       .then(desk => {
         return Promise.all([desk, Desko.getUser(desk.owner)]);
