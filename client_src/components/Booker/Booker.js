@@ -78,7 +78,8 @@ const editingState = {
   editing: 1,
   changingStartTime: 2,
   changingEndTime: 3,
-  creatingReservation: 4
+  creatingReservation: 4,
+  editingReservation: 5
 };
 
 // This draggable stuff creates a lot of changes
@@ -88,10 +89,11 @@ const Booker = props => {
   const [editionState, setEditionState] = useState(editingState.loading);
   const [resEdited, setResEdited] = useState(null);
   const [lastTimeSlotDate, setLastTimeSlotDate] = useState(null);
-  const [newResData, setNewResData] = useState(null);
 
   const [desk, setDesk] = useState(null);
   const [users, setUsers] = useState(null);
+
+  console.log(JSON.stringify(desk));
 
   useEffect(() => {
     DeskoApi.getUsers()
@@ -114,9 +116,9 @@ const Booker = props => {
 
   const timeSegmentLengthMinutes = 30;
 
-  const updateReservation = (resId, startDate, endDate, userId) => {
+  const updateReservationLocal = (resId, startDate, endDate, userId) => {
     const updatedDesk = { ...desk };
-    updatedDesk.reservations = updateDesk.reservations.map(res => {
+    updatedDesk.reservations = updatedDesk.reservations.map(res => {
       if (res._id === resId) {
         return { ...res, startDate: startDate, endDate: endDate, userId: userId };
       }
@@ -135,10 +137,11 @@ const Booker = props => {
     const timeSlotData = findTimeSlotData(evt);
 
     const resId = parseInt(evt.target.getAttribute("data-res-start"));
+    const res = _.cloneDeep(desk.reservations.find(res => res._id === resId));
 
     setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
     setEditionState(editingState.changingStartTime);
-    setResEdited(desk.reservations.find(res => res._id === resId));
+    setResEdited(res);
   }
 
   const resEndOnMouseDown = (evt) => {
@@ -148,11 +151,12 @@ const Booker = props => {
 
     const timeSlotData = findTimeSlotData(evt);
 
-    const resId = parseInt(evt.target.getAttribute("data-res-end"))
+    const resId = parseInt(evt.target.getAttribute("data-res-end"));
+    const res = _.cloneDeep(desk.reservations.find(res => res._id === resId));
 
     setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
     setEditionState(editingState.changingEndTime);
-    setResEdited(desk.reservations.find(res => res._id === resId));
+    setResEdited(res);
   }
 
   const onMouseMove = (evt) => {
@@ -176,8 +180,8 @@ const Booker = props => {
             (timeSlotData.timeSlotStartDate < reservation.endDate ||
                 timeSlotData.timeSlotStartDate.getTime() === reservation.endDate.getTime())) {
 
-            updateReservation(
-              resIdEdited,
+            updateReservationLocal(
+              resEdited._id,
               timeSlotData.timeSlotStartDate,
               reservation.endDate,
               reservation.userId);
@@ -187,8 +191,8 @@ const Booker = props => {
               (timeSlotData.timeSlotEndDate > reservation.startDate ||
                 timeSlotData.timeSlotEndDate.getTime() === reservation.startDate.getTime())) {
 
-            updateReservation(
-              resIdEdited,
+            updateReservationLocal(
+              resEdited._id,
               reservation.startDate,
               timeSlotData.timeSlotEndDate,
               reservation.userId);
@@ -207,25 +211,79 @@ const Booker = props => {
 
     const timeSlotData = findTimeSlotDateFromElem(evt.target);
 
-    setNewResData({
+    setResEdited({
       startDate: timeSlotData.timeSlotStartDate,
       endDate: timeSlotData.timeSlotEndDate
     });
 
     setEditionState(editingState.creatingReservation);
-  }
+  };
 
   const reservationEditorClosed = () => {
     setEditionState(editingState.editing);
-  }
+  };
+
+  const onAcceptClicked = () => {
+    if (editionState === editingState.creatingReservation) {
+      // create reservation
+      DeskoApi.addDeskReservation({
+        deskId: desk._id,
+        userId: resEdited.userId,
+        startDate: resEdited.startDate,
+        endDate: resEdited.endDate
+      })
+      .then(result => {
+        // we need to do this because we don't get the new res id
+        // back from the addReservation call
+        return DeskoApi.getDesk(desk._id);
+      })
+      .then(result => {
+        setDesk(result);
+        setEditionState(editingState.editing);
+      })
+      .catch(err => {
+        throw new Error("you need to do something here");
+      });
+    } else if (editionState === editingState.editingReservation) {
+      // update reservation local, sync with Desko, transition state
+      DeskoApi.updateDeskReservation({
+        deskId: desk._id,
+        resId: resEdited._id,
+        userId: resEdited._userId,
+        startDate: resEdited.startDate,
+        endDate: resEdited.endDate
+      })
+      .then(result => {
+        updateReservationLocal(
+          resEdited._id,
+          resEdited.startDate,
+          resEdited.endDate,
+          resEdited.userId);
+        setEditionState(editingState.editing);
+      })
+      .error(err => {
+        throw new Error("you need to do something here");
+      });
+    } else {
+      throw new Error("not supposed to reach here");
+    }
+  };
+
+  const onCancelClicked = () => {
+    setEditionState(editingState.editing);
+  };
+
+  const onResUserChanged = userId => {
+    setResEdited({ ...resEdited, userId: userId });
+  };
 
   const bookerMouseDown = (evt) => {
-  }
+  };
 
   const bookerMouseUp = () => {
     setEditionState(editingState.editing);
-    setResIdEdited(null);
-  }
+    setResEdited(null);
+  };
 
   function addDaysToDate(date, days) {
     var newDate = new Date(date.valueOf());
@@ -290,11 +348,13 @@ const Booker = props => {
           let validReservations = [];
 
           if (editionState !== editingState.loading) {
-            console.log(JSON.stringify(desk));
             validReservations = desk.reservations.filter(reservation => {
               return reservation.startDate >= dayStartDate &&
                 reservation.endDate <= dayEndDate;
             });
+            console.log(desk.reservations[0].startDate);
+            console.log(desk.reservations[0].endDate);
+            console.log(validReservations);
           }
 
           return (
@@ -310,16 +370,17 @@ const Booker = props => {
           );
         })}
       </div>
-      { editionState === editingState.loading ?
+      { editionState !== editingState.creatingReservation ?
           null :
           <Modal
-            show={editionState === editingState.creatingReservation}
+            show={true}
             modalClosed={reservationEditorClosed}
             classes={modalClasses.reservationEditor}>
             <ReservationEditor
-              timeSegmentLengthMinutes={timeSegmentLengthMinutes}
-              reservation={newResData}
-              show={editionState === editingState.creatingReservation}
+              userChanged={onResUserChanged}
+              acceptClicked={onAcceptClicked}
+              cancelClicked={onCancelClicked}
+              reservation={resEdited}
               users={users} />
           </Modal>
       }

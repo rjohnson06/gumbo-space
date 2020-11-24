@@ -27,13 +27,41 @@ class Desko {
 
   static async getDesks() {
     return fetch(Desko.#apiUrl + "/api/desks")
-      .then(response => response.json());
+      .then(response => response.json())
+      .then(response => {
+        response.forEach(desk => {
+          desk.reservations = desk.reservations.map(res => {
+            return {
+              ...res,
+              startDate: new Date(Date.parse(res.startDate)),
+              endDate: new Date(Date.parse(res.endDate))
+            }
+          });
+        });
+
+        return response;
+      });
   }
 
   static async getDesk(id) {
     return fetch(Desko.#apiUrl + "/api/desk/" + id)
       .then(response => response.json())
-      .then(response => response.length > 0 ? response[0] : null);
+      .then(response => {
+        if (response.length === 0) {
+          return null;
+        }
+
+        const desk = response[0];
+        desk.reservations = desk.reservations.map(res => {
+          return {
+            ...res,
+            startDate: new Date(Date.parse(res.startDate)),
+            endDate: new Date(Date.parse(res.endDate))
+          }
+        });
+
+        return desk;
+      });
   }
 
   static async addDesk(ownerId) {

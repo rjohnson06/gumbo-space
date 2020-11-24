@@ -3,29 +3,23 @@ import React from 'react';
 import classes from './ReservationEditor.module.css';
 
 const reservationEditor = (props) => {
-  const minuteValues = [];
-
-  for (let x = 0; x < 60 / timeSegmentLengthMinutes; x++) {
-    minuteValues.push(timeSegmentLengthMinutes * x);
-  }
-
-  const hourValues = [];
-  for (let h = 0; h < 24; h++) {
-    hourValues.push(h);
-  }
-
   return (
     <div>
       <h2>Reservation Editor</h2>
-      <select>
+      <select
+        value={props.reservation.userId}
+        onChange={ (e) => props.userChanged(e.target.value) }>
         {props.users.map(user => {
           return <option value={user._id} key={user._id}>{user.name}</option>
         })}
       </select>
       <br />
-      Start Date: { reservation.startDate }
+      Start Date: { props.reservation.startDate.toString() }
       <br />
-      End Date: { reservation.endDate }
+      End Date: { props.reservation.startDate.toString() }
+      <br />
+      <button onClick={props.acceptClicked}>Accept</button>
+      <button onClick={props.cancelClicked}>Cancel</button>
     </div>
   );
 };

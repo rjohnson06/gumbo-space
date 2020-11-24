@@ -40,8 +40,8 @@ const Map = props => {
 
           desk.reservationIntervals = desk.reservations.map(res => {
             return Interval.fromDateTimes(
-              DateTime.fromISO(res.startDate),
-              DateTime.fromISO(res.endDate));
+              DateTime.fromJSDate(res.startDate),
+              DateTime.fromJSDate(res.endDate));
           });
 
           const viewDateTime = DateTime.fromJSDate(props.viewDate);
@@ -53,6 +53,7 @@ const Map = props => {
         return desks;
       })
       .catch(error => {
+        console.log(error);
         throw new Error("unhandled problem getting desk data");
       });
   };
