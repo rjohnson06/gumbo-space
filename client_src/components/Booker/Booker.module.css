@@ -1,5 +1,4 @@
 .bookerBody {
-  width: 1500px;
   height: 600px;
   display: flex;
   flex-flow: column;
@@ -24,4 +23,22 @@
 
 .dayOfWeekHeader {
 
+}
+
+.headerParent {
+  display: flex;
+  margin: 15px;
+}
+
+.headerTitleCol {
+  flex-basis: 80%;
+}
+
+.headerTitle {
+  margin: 0;
+}
+
+.headerStatus {
+  flex-basis: 20%;
+  text-align: right;
 }

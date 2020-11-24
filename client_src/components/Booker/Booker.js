@@ -10,82 +10,6 @@ import DeskoApi from '../../API/Desko/Desko';
 import classes from './Booker.module.css';
 import modalClasses from '../UI/Modal/Modal.module.css';
 
-const buildValidDateTimes = timeSegmentLengthMinutes => {
-  const times = [];
-  for (let t = 0; t <= 24 * 60; t += timeSegmentLengthMinutes) {
-    const date = new Date(this.props.dayStartDate);
-
-    date.setHours(t / 60);
-    date.setMinutes(t % 60);
-
-    times.push(date);
-  }
-
-  return times;
-};
-
-const createReservation = (startDate, endDate, userId, deskId) => {
-  const reservations = [
-    ...this.state.reservedTimes
-  ];
-
-  reservations.push({
-    id: reservations.length,
-    userId: userId,
-    startDate: startDate,
-    endDate: endDate,
-    deskId: deskId
-  });
-
-  return reservations.length;
-};
-
-const findTimeSlotData = (evt) => {
-  const x = evt.clientX;
-  const y = evt.clientY;
-  // I would like to have the references to all the reservation elements directly
-  // rather than querying, maybe with refs?
-  const reservationElements =
-    Array.from(document.querySelectorAll('[data-res-start'))
-    .concat(Array.from(document.querySelectorAll('[data-res-end]')));
-
-  console.log("resElements.length " + reservationElements.length);
-
-  reservationElements.forEach((res, i) => {
-    res.parentElement.style["pointer-events"] = "none";
-  });
-
-  const element = document.elementFromPoint(x, y);
-
-  reservationElements.forEach((res, i) => {
-    res.parentElement.style["pointer-events"] = "auto";
-  });
-
-  return findTimeSlotDateFromElem(element);
-}
-
-const findTimeSlotDateFromElem = (element) => {
-  console.log("findTimeSlotDateFromElem " + element.dataset.dateStart);
-
-  const timeSlotDateJson = element.dataset.dateStart;
-  const timeSlotDate = new Date(timeSlotDateJson);
-  const timeSlotEndDate = new Date(element.dataset.dateEnd);
-
-  return {
-    timeSlotStartDate: timeSlotDate,
-    timeSlotEndDate: timeSlotEndDate
-  };
-}
-
-const editingState = {
-  loading: 0,
-  editing: 1,
-  changingStartTime: 2,
-  changingEndTime: 3,
-  creatingReservation: 4,
-  editingReservation: 5
-};
-
 // This draggable stuff creates a lot of changes
 // we throttle how often we're synching with the server
 const Booker = props => {
@@ -95,11 +19,27 @@ const Booker = props => {
   const [lastTimeSlotDate, setLastTimeSlotDate] = useState(null);
 
   const [synching, setSynching] = useState(false);
-  const synchingRef = useRef(synching);
-  synchingRef.current = synching;
+  const [synchingText, setSynchingText] = useState("");
 
   const [desk, setDesk] = useState(null);
   const [users, setUsers] = useState(null);
+
+  const [updatedReservations, setUpdatedReservations] = useState(new Set());
+
+  const updatedResRef = useRef(updatedReservations);
+  updatedResRef.current = updatedReservations;
+
+  const deskRef = useRef(desk);
+  deskRef.current = desk;
+
+  const synchingRef = useRef(synching);
+  synchingRef.current = synching;
+
+  const editionStateRef = useRef(editionState);
+  editionStateRef.current = editionState;
+
+  const resEditedRef = useRef(resEdited);
+  resEditedRef.current = resEdited;
 
   useEffect(() => {
     DeskoApi.getUsers()
@@ -107,45 +47,60 @@ const Booker = props => {
         setUsers(allUsers);
       });
 
-    DeskoApi.getDesk(props.deskEditedId)
+    DeskoApi.getFlatDeskData(props.deskEditedId)
       .then(deskData => {
         setDesk(deskData);
       });
   }, []);
 
+  // sync reservation changes with back-end
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log("running interval");
-
-      if (synchingRef.current || editionState === editingState.loading) {
+      if (synchingRef.current || editionStateRef === editingState.loading) {
         return;
       }
 
+      // TOOD : is this okay to do?
       setSynching(true);
 
-      // TODO : check that we actually have a dirty reservation
-      DeskoApi.updateDeskReservation({
-        deskId: desk._id,
-        resId: resEdited._id,
-        userId: resEdited.userId,
-        startDate: resEdited.startDate,
-        endDate: resEdited.endDate
-      })
-      .then(() => {
+      const promises = [];
+
+      updatedResRef.current.forEach(resId => {
+        const res = deskRef.current.reservations.find(r => r._id === resId);
+
+        const promise = DeskoApi.updateDeskReservation({
+          deskId: deskRef.current._id,
+          resId: resId,
+          userId: res.userId,
+          startDate: res.startDate,
+          endDate: res.endDate
+        })
+        .then(() => {
+          const newSet = new Set(updatedResRef.current);
+          newSet.delete(resId);
+          setUpdatedReservations(newSet);
+        });
+
+        promises.push(promise);
+      });
+
+      if (promises.length > 0) {
+        setSynchingText("Saving...");
+      }
+
+      Promise.all(promises).then(() => {
         setSynching(false);
+        setTimeout(() => {
+          setSynchingText("Saved");
+        }, 2000);
       })
       .catch(() => {
-        // synching error
+        setSynchingText("Error");
       });
-    }, 1000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
-
-  // testing
-  useEffect(() => {
-    console.log("editionState changed " + editionState);
-  }, [editionState]);
 
   // transition to the finished loading state once we get all the data we need
   useEffect(() => {
@@ -162,13 +117,22 @@ const Booker = props => {
     const updatedDesk = { ...desk };
     updatedDesk.reservations = updatedDesk.reservations.map(res => {
       if (res._id === resId) {
-        return { ...res, startDate: startDate, endDate: endDate, userId: userId };
+        return {
+          ...res,
+          startDate: startDate,
+          endDate: endDate,
+          userId: userId
+        };
       }
 
       return res;
     });
 
     setDesk(updatedDesk);
+
+    const newSet = new Set(updatedReservations);
+    newSet.add(resId);
+    setUpdatedReservations(newSet);
   };
 
   const resStartOnMouseDown = (evt) => {
@@ -209,8 +173,6 @@ const Booker = props => {
 
     const reservation = resEdited;
     const timeSlotData = findTimeSlotData(evt);
-
-    console.log("timeSlotData " + JSON.stringify(timeSlotData));
 
     if (lastTimeSlotDate === null) {
       setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
@@ -264,13 +226,10 @@ const Booker = props => {
   };
 
   const reservationEditorClosed = () => {
-    console.log("res editor closed");
     setEditionState(editingState.editing);
   };
 
   const onAcceptClicked = () => {
-    console.log("accept clicked");
-
     if (editionState === editingState.creatingReservation) {
       // create reservation
       DeskoApi.addDeskReservation({
@@ -317,7 +276,6 @@ const Booker = props => {
   };
 
   const onCancelClicked = () => {
-    console.log("cancel clicked");
     setEditionState(editingState.editing);
   };
 
@@ -334,7 +292,6 @@ const Booker = props => {
       return;
     }
 
-    console.log("booker mouse up");
     setEditionState(editingState.editing);
     setResEdited(null);
   };
@@ -375,7 +332,12 @@ const Booker = props => {
       onMouseUp={bookerMouseUp}
       onMouseMove={onMouseMove}
       className={classes.bookerBody} >
-      <h2>Desk Calendar</h2>
+      <div className={classes.headerParent}>
+        <div className={classes.headerTitleCol}>
+          <h2 className={classes.headerTitle}>Desk Calendar</h2>
+        </div>
+        <div className={classes.headerStatus}>{ synchingText }</div>
+      </div>
       <div className={classes.dayOfWeekHeaderContainer}>
         {datesInWeek.map((date, ind) => {
           return (
@@ -406,9 +368,6 @@ const Booker = props => {
               return reservation.startDate >= dayStartDate &&
                 reservation.endDate <= dayEndDate;
             });
-            // console.log(desk.reservations[0].startDate);
-            // console.log(desk.reservations[0].endDate);
-            // console.log(validReservations);
           }
 
           return (
@@ -440,6 +399,78 @@ const Booker = props => {
       }
     </div>
   );
+};
+
+const buildValidDateTimes = timeSegmentLengthMinutes => {
+  const times = [];
+  for (let t = 0; t <= 24 * 60; t += timeSegmentLengthMinutes) {
+    const date = new Date(this.props.dayStartDate);
+
+    date.setHours(t / 60);
+    date.setMinutes(t % 60);
+
+    times.push(date);
+  }
+
+  return times;
+};
+
+const createReservation = (startDate, endDate, userId, deskId) => {
+  const reservations = [
+    ...this.state.reservedTimes
+  ];
+
+  reservations.push({
+    id: reservations.length,
+    userId: userId,
+    startDate: startDate,
+    endDate: endDate,
+    deskId: deskId
+  });
+
+  return reservations.length;
+};
+
+const findTimeSlotData = (evt) => {
+  const x = evt.clientX;
+  const y = evt.clientY;
+  // I would like to have the references to all the reservation elements directly
+  // rather than querying, maybe with refs?
+  const reservationElements =
+    Array.from(document.querySelectorAll('[data-res-start'))
+    .concat(Array.from(document.querySelectorAll('[data-res-end]')));
+
+  reservationElements.forEach((res, i) => {
+    res.parentElement.style["pointer-events"] = "none";
+  });
+
+  const element = document.elementFromPoint(x, y);
+
+  reservationElements.forEach((res, i) => {
+    res.parentElement.style["pointer-events"] = "auto";
+  });
+
+  return findTimeSlotDateFromElem(element);
+}
+
+const findTimeSlotDateFromElem = (element) => {
+  const timeSlotDateJson = element.dataset.dateStart;
+  const timeSlotDate = new Date(timeSlotDateJson);
+  const timeSlotEndDate = new Date(element.dataset.dateEnd);
+
+  return {
+    timeSlotStartDate: timeSlotDate,
+    timeSlotEndDate: timeSlotEndDate
+  };
+}
+
+const editingState = {
+  loading: 0,
+  editing: 1,
+  changingStartTime: 2,
+  changingEndTime: 3,
+  creatingReservation: 4,
+  editingReservation: 5
 };
 
 export default Booker;

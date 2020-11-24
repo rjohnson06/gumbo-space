@@ -14,7 +14,8 @@
 
 .Modal.bookerModal {
   width: auto;
-  left: calc(50% - 750px);
+  left: 50%;
+  transform: translateX(-50%);
   top: 5%;
 }
 

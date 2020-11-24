@@ -43,6 +43,18 @@ class Desko {
       });
   }
 
+  static deskORM(desk) {
+    desk.reservations = desk.reservations.map(res => {
+      return {
+        ...res,
+        startDate: new Date(Date.parse(res.startDate)),
+        endDate: new Date(Date.parse(res.endDate))
+      }
+    });
+
+    return desk;
+  }
+
   static async getDesk(id) {
     return fetch(Desko.#apiUrl + "/api/desk/" + id)
       .then(response => response.json())
@@ -52,15 +64,8 @@ class Desko {
         }
 
         const desk = response[0];
-        desk.reservations = desk.reservations.map(res => {
-          return {
-            ...res,
-            startDate: new Date(Date.parse(res.startDate)),
-            endDate: new Date(Date.parse(res.endDate))
-          }
-        });
 
-        return desk;
+        return Desko.deskORM(desk);
       });
   }
 
@@ -127,14 +132,28 @@ class Desko {
 
   // "extra" methods, not 1-1 with the REST API
   static async getFlatDeskData(deskId) {
-    return fetch(Desko.#apiUrl + "/api/desk/" + deskId)
-      .then(response => response.json())
-      .then(desk => {
-        return Promise.all([desk, Desko.getUser(desk.owner)]);
-      })
-      .then(([desk, user]) => {
-        desk.userName = user.name;
-        return desk;
+    return Promise.all([
+        fetch(Desko.#apiUrl + "/api/desk/" + deskId)
+          .then(response => response.json()),
+        Desko.getUsers()
+      ])
+      .then(([desks, users]) => {
+        const desk = desks[0];
+
+        if (desks.length === 0) {
+          return null;
+        }
+
+        desk.userName = users.find(user => desk.owner === user._id).name;
+
+        desk.reservations.forEach(res => {
+          const user = users.find(user => res.userId === user._id);
+          res.userName = user ? user.name : null;
+        });
+
+        console.log(JSON.stringify(desk));
+
+        return Desko.deskORM(desk);
       });
   }
 }

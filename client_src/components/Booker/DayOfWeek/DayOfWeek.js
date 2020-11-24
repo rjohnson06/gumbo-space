@@ -100,7 +100,6 @@ class DayOfWeek extends Component {
                 &darr;
               </div>
               {reservation.userName}
-
             </div>
           );
         })}
