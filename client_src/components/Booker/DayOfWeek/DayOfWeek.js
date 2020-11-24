@@ -89,13 +89,13 @@ class DayOfWeek extends Component {
 
               <div
                 onMouseDown={this.props.resStartOnMouseDown}
-                data-res-start={reservation.id}
+                data-res-start={reservation._id}
                 className={classes.reservationHandle + " " + classes.reservationStartTimeHandle}>
                 &uarr;
               </div>
               <div
                 onMouseDown={this.props.resEndOnMouseDown}
-                data-res-end={reservation.id}
+                data-res-end={reservation._id}
                 className={classes.reservationHandle + " " + classes.reservationEndTimeHandle}>
                 &darr;
               </div>

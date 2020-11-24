@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import _ from 'lodash';
 
@@ -49,6 +49,8 @@ const findTimeSlotData = (evt) => {
     Array.from(document.querySelectorAll('[data-res-start'))
     .concat(Array.from(document.querySelectorAll('[data-res-end]')));
 
+  console.log("resElements.length " + reservationElements.length);
+
   reservationElements.forEach((res, i) => {
     res.parentElement.style["pointer-events"] = "none";
   });
@@ -63,6 +65,8 @@ const findTimeSlotData = (evt) => {
 }
 
 const findTimeSlotDateFromElem = (element) => {
+  console.log("findTimeSlotDateFromElem " + element.dataset.dateStart);
+
   const timeSlotDateJson = element.dataset.dateStart;
   const timeSlotDate = new Date(timeSlotDateJson);
   const timeSlotEndDate = new Date(element.dataset.dateEnd);
@@ -90,10 +94,12 @@ const Booker = props => {
   const [resEdited, setResEdited] = useState(null);
   const [lastTimeSlotDate, setLastTimeSlotDate] = useState(null);
 
+  const [synching, setSynching] = useState(false);
+  const synchingRef = useRef(synching);
+  synchingRef.current = synching;
+
   const [desk, setDesk] = useState(null);
   const [users, setUsers] = useState(null);
-
-  console.log(JSON.stringify(desk));
 
   useEffect(() => {
     DeskoApi.getUsers()
@@ -107,9 +113,45 @@ const Booker = props => {
       });
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log("running interval");
+
+      if (synchingRef.current || editionState === editingState.loading) {
+        return;
+      }
+
+      setSynching(true);
+
+      // TODO : check that we actually have a dirty reservation
+      DeskoApi.updateDeskReservation({
+        deskId: desk._id,
+        resId: resEdited._id,
+        userId: resEdited.userId,
+        startDate: resEdited.startDate,
+        endDate: resEdited.endDate
+      })
+      .then(() => {
+        setSynching(false);
+      })
+      .catch(() => {
+        // synching error
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // testing
+  useEffect(() => {
+    console.log("editionState changed " + editionState);
+  }, [editionState]);
+
   // transition to the finished loading state once we get all the data we need
   useEffect(() => {
-    if (desk !== null && users !== null) {
+    if (editionState === editingState.loading &&
+        desk !== null &&
+        users !== null) {
       setEditionState(editingState.editing);
     }
   }, [desk, users]);
@@ -136,12 +178,12 @@ const Booker = props => {
 
     const timeSlotData = findTimeSlotData(evt);
 
-    const resId = parseInt(evt.target.getAttribute("data-res-start"));
+    const resId = evt.target.getAttribute("data-res-start");
     const res = _.cloneDeep(desk.reservations.find(res => res._id === resId));
 
+    setResEdited(res);
     setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
     setEditionState(editingState.changingStartTime);
-    setResEdited(res);
   }
 
   const resEndOnMouseDown = (evt) => {
@@ -151,12 +193,12 @@ const Booker = props => {
 
     const timeSlotData = findTimeSlotData(evt);
 
-    const resId = parseInt(evt.target.getAttribute("data-res-end"));
+    const resId = evt.target.getAttribute("data-res-end");
     const res = _.cloneDeep(desk.reservations.find(res => res._id === resId));
 
+    setResEdited(res);
     setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
     setEditionState(editingState.changingEndTime);
-    setResEdited(res);
   }
 
   const onMouseMove = (evt) => {
@@ -167,6 +209,8 @@ const Booker = props => {
 
     const reservation = resEdited;
     const timeSlotData = findTimeSlotData(evt);
+
+    console.log("timeSlotData " + JSON.stringify(timeSlotData));
 
     if (lastTimeSlotDate === null) {
       setLastTimeSlotDate(timeSlotData.timeSlotStartDate);
@@ -220,10 +264,13 @@ const Booker = props => {
   };
 
   const reservationEditorClosed = () => {
+    console.log("res editor closed");
     setEditionState(editingState.editing);
   };
 
   const onAcceptClicked = () => {
+    console.log("accept clicked");
+
     if (editionState === editingState.creatingReservation) {
       // create reservation
       DeskoApi.addDeskReservation({
@@ -270,6 +317,7 @@ const Booker = props => {
   };
 
   const onCancelClicked = () => {
+    console.log("cancel clicked");
     setEditionState(editingState.editing);
   };
 
@@ -281,6 +329,12 @@ const Booker = props => {
   };
 
   const bookerMouseUp = () => {
+    if (editionState === editingState.creatingReservation ||
+        editionState === editingState.editingReservation) {
+      return;
+    }
+
+    console.log("booker mouse up");
     setEditionState(editingState.editing);
     setResEdited(null);
   };
@@ -352,9 +406,9 @@ const Booker = props => {
               return reservation.startDate >= dayStartDate &&
                 reservation.endDate <= dayEndDate;
             });
-            console.log(desk.reservations[0].startDate);
-            console.log(desk.reservations[0].endDate);
-            console.log(validReservations);
+            // console.log(desk.reservations[0].startDate);
+            // console.log(desk.reservations[0].endDate);
+            // console.log(validReservations);
           }
 
           return (
