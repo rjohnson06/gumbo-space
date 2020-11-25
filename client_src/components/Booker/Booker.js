@@ -15,6 +15,7 @@ import modalClasses from '../UI/Modal/Modal.module.css';
   You need to get the flattened data (user name) when you create a new reservation
   If you have a central store/layer of data for the whole app, it would make
   sense to push this task there
+  The data layer could be implemented in a hook maybe!!
 */
 
 // This draggable stuff creates a lot of changes
