@@ -144,14 +144,13 @@ class Desko {
           return null;
         }
 
-        desk.userName = users.find(user => desk.owner === user._id).name;
+        const matchingUser = users.find(user => desk.owner === user._id);
+        desk.userName = matchingUser ? matchingUser.name : null;
 
         desk.reservations.forEach(res => {
           const user = users.find(user => res.userId === user._id);
           res.userName = user ? user.name : null;
         });
-
-        console.log(JSON.stringify(desk));
 
         return Desko.deskORM(desk);
       });

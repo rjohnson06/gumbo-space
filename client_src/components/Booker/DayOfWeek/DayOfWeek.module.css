@@ -1,21 +1,40 @@
 .reservation {
   background: rgba(110, 106, 224, .8);
-  z-index: 999;
+  z-index: 1;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .reservationHandle {
   height: 30px;
   width: 100%;
   background: rgba(65, 105, 214, .5);
+  text-align: center;
+}
+
+.reservation.reservationSmall {
+  flex-direction: row;
+}
+
+.reservation.reservationSmall .reservationHandle,
+.reservation.reservationSmall .reservationHandle {
+  width: 35px;
+  height: 100%;
 }
 
 .reservationStartTimeHandle {
 }
 
 .reservationEndTimeHandle {
-  position: absolute;
-  bottom: 0;
+}
+
+.reservationContent {
+  text-align: center;
+  flex: 1;
+}
+
+.reservationContentInner {
 }
 
 .bookerDayOfWeek {
