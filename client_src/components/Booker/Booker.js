@@ -33,6 +33,7 @@ const Booker = props => {
   const [synching, setSynching] = useState(false);
   const [synchingText, setSynchingText] = useState("");
 
+  // the local data store
   const [desk, setDesk] = useState(null);
   const [users, setUsers] = useState(null);
 
@@ -49,9 +50,6 @@ const Booker = props => {
 
   const editionStateRef = useRef(editionState);
   editionStateRef.current = editionState;
-
-  const resEditedRef = useRef(resEdited);
-  resEditedRef.current = resEdited;
 
   // if the deskEditedId changes, we need to transition immediately
   // to the loading state, stop handling all input
