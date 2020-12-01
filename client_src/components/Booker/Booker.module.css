@@ -42,3 +42,30 @@
   flex-basis: 20%;
   text-align: right;
 }
+
+.loadingOverlay {
+  z-index: 1;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+}
+
+.loadingBackground {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: white;
+  opacity: .8;
+}
+
+.loadingErrorMessage {
+  color: #fc4747;
+  font-weight: bold;
+  z-index: 1;
+}

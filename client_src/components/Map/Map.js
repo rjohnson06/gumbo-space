@@ -139,6 +139,7 @@ const Map = props => {
       { selectedDeskId !== null ?
         <Modal show={showBooker} modalClosed={onBookerClosed} classes={modalClasses.bookerModal}>
           <Booker
+            key={selectedDeskId}
             date={props.viewDate}
             deskEditedId={selectedDeskId} />
         </Modal> :

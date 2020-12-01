@@ -7,6 +7,7 @@ import ReservationEditor from './ReservationEditor/ReservationEditor';
 import DayOfWeek from './DayOfWeek/DayOfWeek';
 import Modal from '../UI/Modal/Modal';
 import DeskoApi from '../../API/Desko/Desko';
+import CircleLoading from '../UI/LoadingIcons/Circle/CircleLoading';
 
 import classes from './Booker.module.css';
 import modalClasses from '../UI/Modal/Modal.module.css';
@@ -52,19 +53,43 @@ const Booker = props => {
   const resEditedRef = useRef(resEdited);
   resEditedRef.current = resEdited;
 
+  // if the deskEditedId changes, we need to transition immediately
+  // to the loading state, stop handling all input
+  // you also need to re-set a bunch of other states, useReducer looks like a
+  // better option for this workflow
+  // OR force a remount of this component in the parent
+
+  // get initial data
   useEffect(() => {
-    DeskoApi.getUsers()
+    //setEditionState(editingState.loading);
+
+    const promises = [];
+
+    promises.push(DeskoApi.getUsers()
       .then(allUsers => {
         setUsers(allUsers);
-      });
+      }));
 
-    DeskoApi.getFlatDeskData(props.deskEditedId)
+    promises.push(DeskoApi.getFlatDeskData(props.deskEditedId)
       .then(deskData => {
         setDesk(deskData);
-      });
-  }, []);
+      }));
 
-  // sync reservation changes with back-end
+    Promise.all(promises).catch(err => {
+      setEditionState(editingState.loadError);
+    });
+  }, [props.deskEditedId]);
+
+  // transition to the finished loading state once we get all the data we need
+  useEffect(() => {
+    if (editionState === editingState.loading &&
+        desk !== null &&
+        users !== null) {
+      setEditionState(editingState.editing);
+    }
+  }, [desk, users]);
+
+  // Set up syncing reservation changes with back-end periodically
   useEffect(() => {
     const interval = setInterval(() => {
       if (synchingRef.current || editionStateRef === editingState.loading) {
@@ -113,15 +138,6 @@ const Booker = props => {
     return () => clearInterval(interval);
   }, []);
 
-  // transition to the finished loading state once we get all the data we need
-  useEffect(() => {
-    if (editionState === editingState.loading &&
-        desk !== null &&
-        users !== null) {
-      setEditionState(editingState.editing);
-    }
-  }, [desk, users]);
-
   const timeSegmentLengthMinutes = 30;
 
   // TODO : you need to update the flattened data (user name) as well
@@ -147,6 +163,9 @@ const Booker = props => {
     setUpdatedReservations(newSet);
   };
 
+  // editionState should be the fresh state because the component re-renders,
+  // we get the new value, then we re-define this callback and close over the
+  // new state and this new callback gets passed to the dom element
   const resStartOnMouseDown = (evt) => {
     if (editionState !== editingState.editing) {
       return;
@@ -327,8 +346,8 @@ const Booker = props => {
   };
 
   const bookerMouseUp = () => {
-    if (editionState === editingState.creatingReservation ||
-        editionState === editingState.editingReservation) {
+    if (editionState !== editingState.changingStartTime &&
+        editionState !== editingState.changingEndTime) {
       return;
     }
 
@@ -340,8 +359,6 @@ const Booker = props => {
     if (editionState === editingState.loading) {
       return;
     }
-
-    console.log("reservationClick " + JSON.stringify(res));
 
     setResEdited(res);
     setEditionState(editingState.editingReservation);
@@ -390,10 +407,23 @@ const Booker = props => {
     "Saturday"
   ];
 
-  /*
-  grid-column: col ;
-  grid-row: row ;
-  */
+  let loadingOverlay = null;
+
+  if (editionState === editingState.loading) {
+    loadingOverlay =
+      <div className={classes.loadingOverlay}>
+        <div className={classes.loadingBackground}></div>
+        <CircleLoading />
+      </div>;
+  } else if (editionState === editingState.loadError) {
+    loadingOverlay =
+      <div className={classes.loadingOverlay}>
+        <div className={classes.loadingErrorMessage}>
+          There was a problem, please try again later.
+        </div>
+        <div className={classes.loadingBackground}></div>
+      </div>
+  }
 
   return (
     <div
@@ -469,40 +499,12 @@ const Booker = props => {
               users={users} />
           </Modal>
       }
+      { loadingOverlay }
     </div>
   );
 };
 
-const buildValidDateTimes = timeSegmentLengthMinutes => {
-  const times = [];
-  for (let t = 0; t <= 24 * 60; t += timeSegmentLengthMinutes) {
-    const date = new Date(this.props.dayStartDate);
-
-    date.setHours(t / 60);
-    date.setMinutes(t % 60);
-
-    times.push(date);
-  }
-
-  return times;
-};
-
-const createReservation = (startDate, endDate, userId, deskId) => {
-  const reservations = [
-    ...this.state.reservedTimes
-  ];
-
-  reservations.push({
-    id: reservations.length,
-    userId: userId,
-    startDate: startDate,
-    endDate: endDate,
-    deskId: deskId
-  });
-
-  return reservations.length;
-};
-
+// utility funcions
 const findTimeSlotData = (evt) => {
   const x = evt.clientX;
   const y = evt.clientY;
@@ -538,11 +540,12 @@ const findTimeSlotDateFromElem = (element) => {
 
 const editingState = {
   loading: 0,
-  editing: 1,
-  changingStartTime: 2,
-  changingEndTime: 3,
-  creatingReservation: 4,
-  editingReservation: 5
+  loadError: 1,
+  editing: 2,
+  changingStartTime: 3,
+  changingEndTime: 4,
+  creatingReservation: 5,
+  editingReservation: 6
 };
 
 export default Booker;
